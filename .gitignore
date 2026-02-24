@@ -1,0 +1,13 @@
+__pycache__
+
+.env
+
+.pytest_cache
+
+.venv
+
+.DS_Store
+
+*.egg-info
+
+.ruff_cache
