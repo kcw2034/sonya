@@ -1,13 +1,40 @@
-__pycache__
-
-.env
-
-.pytest_cache
-
-.venv
-
+# OS
 .DS_Store
 
-*.egg-info
+# Editor / IDE
+.vscode/
+.idea/
 
-.ruff_cache
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Environment variables
+.env
+.env.*
+
+# Tool caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Packaging / build artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Local agent/tooling state
+.claude/
+.opencode/
