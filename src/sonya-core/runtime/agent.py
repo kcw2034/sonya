@@ -7,9 +7,11 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 import logging
 
 from ..llm.base import BaseLLMClient
+from ..llm.errors import LLMAPIError
 from ..llm.models import Message, StopReason, ToolResultBlock
 from ..tools.context import ToolContext
 from ..tools.registry import ToolRegistry
@@ -62,13 +64,24 @@ class AgentRuntime:
 
             # 2. LLM 호출
             api_messages = [m.to_api_dict() for m in self._history]
-            response = await self.client.chat(messages=api_messages, tools=tools)
+            try:
+                response = await self.client.chat(messages=api_messages, tools=tools)
+            except LLMAPIError as e:
+                logger.error(
+                    f"LLM API 호출 실패: [{e.provider}] {e.status_code} - {e.message}"
+                )
+                raise RuntimeError(
+                    f"LLM API 호출에 실패했습니다 ({e.provider}, status={e.status_code}): "
+                    f"{e.message}"
+                ) from e
 
             # assistant 응답을 history에 추가
-            self._history.append(Message(
-                role="assistant",
-                content=response.content,
-            ))
+            self._history.append(
+                Message(
+                    role="assistant",
+                    content=response.content,
+                )
+            )
 
             # 3. end_turn → 최종 텍스트 반환
             if response.stop_reason == StopReason.END_TURN:
@@ -103,10 +116,93 @@ class AgentRuntime:
                             content=content,
                         )
                     )
-                self._history.append(Message(
-                    role="user",
-                    content=result_blocks,
-                ))
+                self._history.append(
+                    Message(
+                        role="user",
+                        content=result_blocks,
+                    )
+                )
+
+        raise RuntimeError(
+            f"최대 반복 횟수({self.max_iterations})를 초과했습니다. "
+            "Tool 호출 루프가 종료되지 않았습니다."
+        )
+
+    async def run_stream(self, user_message: str) -> AsyncIterator[str]:
+        self._history.append(Message(role="user", content=user_message))
+
+        tools = self.registry.schemas() if len(self.registry) > 0 else None
+        ctx = ToolContext()
+
+        for iteration in range(self.max_iterations):
+            logger.debug(f"Stream iteration {iteration + 1}/{self.max_iterations}")
+
+            api_messages = [m.to_api_dict() for m in self._history]
+            final_response = None
+
+            try:
+                stream = self.client.chat_stream(
+                    messages=api_messages, tools=tools
+                )
+            except LLMAPIError as e:
+                logger.error(
+                    f"LLM 스트림 호출 실패: [{e.provider}] {e.status_code} - {e.message}"
+                )
+                raise RuntimeError(
+                    f"LLM API 호출에 실패했습니다 ({e.provider}, status={e.status_code}): "
+                    f"{e.message}"
+                ) from e
+
+            async for chunk in stream:
+                if chunk.delta_text:
+                    yield chunk.delta_text
+                if chunk.response is not None:
+                    final_response = chunk.response
+
+            if final_response is None:
+                raise RuntimeError("스트리밍 응답에서 최종 response를 받지 못했습니다.")
+
+            self._history.append(
+                Message(
+                    role="assistant",
+                    content=final_response.content,
+                )
+            )
+
+            if final_response.stop_reason == StopReason.END_TURN:
+                return
+
+            if final_response.stop_reason == StopReason.MAX_TOKENS:
+                logger.warning("max_tokens에 도달하여 응답이 잘렸습니다.")
+                return
+
+            if final_response.stop_reason == StopReason.TOOL_USE:
+                tool_use_blocks = final_response.tool_use_blocks()
+                tool_calls = [
+                    {"id": b.id, "name": b.name, "input": b.input}
+                    for b in tool_use_blocks
+                ]
+                results = await self.registry.execute_many(tool_calls, ctx=ctx)
+
+                result_blocks = []
+                for r in results:
+                    content = r.to_llm_format()["content"]
+                    if ctx.keys():
+                        summary = ctx.summary()
+                        content += f"\n[ToolContext: {summary}]"
+                    result_blocks.append(
+                        ToolResultBlock(
+                            tool_use_id=r.tool_use_id,
+                            content=content,
+                        )
+                    )
+
+                self._history.append(
+                    Message(
+                        role="user",
+                        content=result_blocks,
+                    )
+                )
 
         raise RuntimeError(
             f"최대 반복 횟수({self.max_iterations})를 초과했습니다. "

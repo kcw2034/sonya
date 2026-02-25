@@ -7,6 +7,8 @@
 
 from .models import (
     ContentBlock,
+    LLMStream,
+    LLMStreamChunk,
     LLMResponse,
     Message,
     StopReason,
@@ -16,6 +18,7 @@ from .models import (
     Usage,
 )
 from .base import BaseLLMClient
+from .errors import LLMAPIError, RETRYABLE_STATUS_CODES
 from .client import (
     ANTHROPIC_API_URL,
     ANTHROPIC_API_VERSION,
@@ -28,6 +31,8 @@ from .client import (
 
 __all__ = [
     "BaseLLMClient",
+    "LLMAPIError",
+    "RETRYABLE_STATUS_CODES",
     "AnthropicClient",
     "OpenAIClient",
     "GeminiClient",
@@ -36,6 +41,8 @@ __all__ = [
     "OPENAI_API_URL",
     "GEMINI_API_URL",
     "ContentBlock",
+    "LLMStream",
+    "LLMStreamChunk",
     "LLMResponse",
     "Message",
     "StopReason",

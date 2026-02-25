@@ -10,7 +10,8 @@ import json
 import httpx
 import pytest
 
-from sonya_core.llm.openai_client import OpenAIClient, OPENAI_API_URL
+from sonya_core.llm.client.openai import OpenAIClient
+from sonya_core.llm.errors import LLMAPIError
 from sonya_core.llm.models import StopReason
 
 
@@ -192,14 +193,18 @@ class TestOpenAIClient:
             assert response.id == "chatcmpl-mock-1"
 
     @pytest.mark.asyncio
-    async def test_http_error_raises(self):
+    async def test_http_error_raises_llm_api_error(self):
+        """non-retryable HTTP 에러는 LLMAPIError로 래핑되어 즉시 전파"""
         error_response = {"error": {"message": "invalid key", "type": "invalid_request_error"}}
         client = OpenAIClient(api_key="bad-key")
         client._http = httpx.AsyncClient(
             transport=_make_mock_transport(error_response, status_code=401)
         )
-        with pytest.raises(httpx.HTTPStatusError):
+        with pytest.raises(LLMAPIError) as exc_info:
             await client.chat(messages=[{"role": "user", "content": "hi"}])
+        assert exc_info.value.status_code == 401
+        assert exc_info.value.provider == "openai"
+        assert exc_info.value.retryable is False
         await client.close()
 
 

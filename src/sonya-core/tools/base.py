@@ -11,10 +11,13 @@ Tool 베이스 레이어
 import asyncio
 import functools
 import inspect
+import logging
 from abc import ABC, abstractmethod
 from typing import Generic, Type, TypeVar, get_type_hints
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
+
+logger = logging.getLogger(__name__)
 
 from .context import ToolContext
 from .models import ToolResult
@@ -170,6 +173,8 @@ class BaseTool(ABC, Generic[InputT, OutputT]):
             input_type = self.get_input_type()
             parsed_input = input_type.model_validate(raw_input)
 
+            logger.debug(f"[{self.name}] 실행 시작: {list(raw_input.keys())}")
+
             # execute 시그니처에 ctx가 있으면 주입
             if ctx is not None and self._execute_wants_ctx():
                 output = await self.execute(parsed_input, ctx=ctx)
@@ -179,7 +184,24 @@ class BaseTool(ABC, Generic[InputT, OutputT]):
             # execute가 ToolResult를 직접 반환하는 경우
             if isinstance(output, ToolResult):
                 output.tool_use_id = tool_use_id
+                logger.debug(f"[{self.name}] 실행 완료 (ToolResult 직접 반환)")
                 return output
+
+            # output 스키마 검증
+            output_type = self.get_output_type()
+            if output_type and isinstance(output, BaseModel):
+                try:
+                    output_type.model_validate(output.model_dump())
+                except ValidationError as ve:
+                    logger.error(f"[{self.name}] output validation 실패: {ve}")
+                    return ToolResult(
+                        tool_name=self.name,
+                        tool_use_id=tool_use_id,
+                        success=False,
+                        error=f"Output validation failed: {ve}",
+                    )
+
+            logger.debug(f"[{self.name}] 실행 완료")
 
             return ToolResult(
                 tool_name=self.name,
@@ -188,6 +210,7 @@ class BaseTool(ABC, Generic[InputT, OutputT]):
                 output=output.model_dump() if isinstance(output, BaseModel) else output,
             )
         except ToolError as e:
+            logger.warning(f"[{self.name}] ToolError: {e.message}")
             return ToolResult(
                 tool_name=self.name,
                 tool_use_id=tool_use_id,
@@ -195,6 +218,7 @@ class BaseTool(ABC, Generic[InputT, OutputT]):
                 error=str(e.message),
             )
         except Exception as e:
+            logger.error(f"[{self.name}] 예상치 못한 에러: {type(e).__name__}: {e}")
             return ToolResult(
                 tool_name=self.name,
                 tool_use_id=tool_use_id,

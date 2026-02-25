@@ -8,12 +8,15 @@ OpenAI API 클라이언트
 from __future__ import annotations
 
 import json
+import logging
 import os
 
 import httpx
 
 from ..base import BaseLLMClient
 from ..models import LLMResponse, StopReason, Usage
+
+logger = logging.getLogger(__name__)
 
 OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
 
@@ -33,6 +36,7 @@ class OpenAIClient(BaseLLMClient):
         model: str = "gpt-5.2",
         max_tokens: int = 4096,
         system: str | None = None,
+        max_retries: int = 3,
     ):
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
         if not self.api_key:
@@ -42,6 +46,7 @@ class OpenAIClient(BaseLLMClient):
         self.model = model
         self.max_tokens = max_tokens
         self.system = system
+        self.max_retries = max_retries
         self._http: httpx.AsyncClient | None = None
 
     @property
@@ -154,7 +159,7 @@ class OpenAIClient(BaseLLMClient):
             for tool in tools
         ]
 
-    async def chat(
+    async def _chat_impl(
         self,
         messages: list[dict],
         tools: list[dict] | None = None,
@@ -181,10 +186,20 @@ class OpenAIClient(BaseLLMClient):
         if tools:
             body["tools"] = self._convert_tools(tools)
 
+        logger.debug(
+            f"[openai] chat request: model={self.model}, "
+            f"messages={len(messages)}"
+        )
+
         response = await http.post(OPENAI_API_URL, json=body)
         response.raise_for_status()
 
-        return self._parse_response(response.json())
+        result = self._parse_response(response.json())
+        logger.debug(
+            f"[openai] response: stop_reason={result.stop_reason.value}, "
+            f"usage=({result.usage.input_tokens}in/{result.usage.output_tokens}out)"
+        )
+        return result
 
     def _parse_response(self, data: dict) -> LLMResponse:
         """

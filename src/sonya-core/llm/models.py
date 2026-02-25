@@ -8,6 +8,7 @@ LLM 메시지 & 응답 모델
 from __future__ import annotations
 
 import enum
+from collections.abc import AsyncIterator
 from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field
@@ -15,12 +16,14 @@ from pydantic import BaseModel, Field
 
 class TextBlock(BaseModel):
     """텍스트 콘텐츠 블록"""
+
     type: Literal["text"] = "text"
     text: str
 
 
 class ToolUseBlock(BaseModel):
     """LLM이 Tool 호출을 요청하는 블록"""
+
     type: Literal["tool_use"] = "tool_use"
     id: str
     name: str
@@ -29,6 +32,7 @@ class ToolUseBlock(BaseModel):
 
 class ToolResultBlock(BaseModel):
     """Tool 실행 결과를 LLM에 돌려보내는 블록"""
+
     type: Literal["tool_result"] = "tool_result"
     tool_use_id: str
     content: str
@@ -48,6 +52,7 @@ class Message(BaseModel):
     content는 편의상 str도 허용하지만,
     to_api_dict()에서는 Anthropic API 포맷으로 변환한다.
     """
+
     role: Literal["user", "assistant"]
     content: str | list[ContentBlock]
 
@@ -63,6 +68,7 @@ class Message(BaseModel):
 
 class StopReason(str, enum.Enum):
     """LLM 응답 종료 이유"""
+
     END_TURN = "end_turn"
     TOOL_USE = "tool_use"
     MAX_TOKENS = "max_tokens"
@@ -70,6 +76,7 @@ class StopReason(str, enum.Enum):
 
 class Usage(BaseModel):
     """토큰 사용량"""
+
     input_tokens: int
     output_tokens: int
 
@@ -80,6 +87,7 @@ class LLMResponse(BaseModel):
 
     raw JSON → LLMResponse.from_api_response() 로 생성
     """
+
     id: str
     model: str
     stop_reason: StopReason
@@ -108,3 +116,11 @@ class LLMResponse(BaseModel):
             content=data["content"],
             usage=Usage(**data["usage"]),
         )
+
+
+class LLMStreamChunk(BaseModel):
+    delta_text: str | None = None
+    response: LLMResponse | None = None
+
+
+LLMStream = AsyncIterator[LLMStreamChunk]

@@ -8,6 +8,7 @@ Google Gemini API 클라이언트
 from __future__ import annotations
 
 import json
+import logging
 import os
 import uuid
 
@@ -15,6 +16,8 @@ import httpx
 
 from ..base import BaseLLMClient
 from ..models import LLMResponse, StopReason, Usage
+
+logger = logging.getLogger(__name__)
 
 GEMINI_API_URL = (
     "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
@@ -36,6 +39,7 @@ class GeminiClient(BaseLLMClient):
         model: str = "gemini-3-flash-preview",
         max_tokens: int = 4096,
         system: str | None = None,
+        max_retries: int = 3,
     ):
         self.api_key = api_key or os.environ.get("GEMINI_API_KEY")
         if not self.api_key:
@@ -45,6 +49,7 @@ class GeminiClient(BaseLLMClient):
         self.model = model
         self.max_tokens = max_tokens
         self.system = system
+        self.max_retries = max_retries
         self._http: httpx.AsyncClient | None = None
         # Gemini는 functionCall에 ID가 없으므로 합성 ID↔이름 매핑을 유지
         self._call_id_map: dict[str, str] = {}
@@ -184,7 +189,7 @@ class GeminiClient(BaseLLMClient):
             declarations.append(decl)
         return [{"functionDeclarations": declarations}]
 
-    async def chat(
+    async def _chat_impl(
         self,
         messages: list[dict],
         tools: list[dict] | None = None,
@@ -214,6 +219,11 @@ class GeminiClient(BaseLLMClient):
         if tools:
             body["tools"] = self._convert_tools(tools)
 
+        logger.debug(
+            f"[gemini] chat request: model={self.model}, "
+            f"messages={len(messages)}"
+        )
+
         response = await http.post(
             url,
             json=body,
@@ -221,7 +231,12 @@ class GeminiClient(BaseLLMClient):
         )
         response.raise_for_status()
 
-        return self._parse_response(response.json())
+        result = self._parse_response(response.json())
+        logger.debug(
+            f"[gemini] response: stop_reason={result.stop_reason.value}, "
+            f"usage=({result.usage.input_tokens}in/{result.usage.output_tokens}out)"
+        )
+        return result
 
     def _parse_response(self, data: dict) -> LLMResponse:
         """

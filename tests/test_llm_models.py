@@ -3,17 +3,15 @@ LLM 모델 직렬화/역직렬화 테스트
 python -m pytest tests/test_llm_models.py -v
 """
 
-import pytest
-
 from sonya_core.llm.models import (
     ContentBlock,
+    LLMStreamChunk,
     LLMResponse,
     Message,
     StopReason,
     TextBlock,
     ToolResultBlock,
     ToolUseBlock,
-    Usage,
 )
 
 
@@ -37,19 +35,20 @@ class TestContentBlocks:
     def test_discriminated_union_parsing(self):
         """type 필드 기반으로 올바른 블록 타입이 선택되는지 검증"""
         from pydantic import TypeAdapter
+
         adapter = TypeAdapter(ContentBlock)
 
         text = adapter.validate_python({"type": "text", "text": "hello"})
         assert isinstance(text, TextBlock)
 
-        tool_use = adapter.validate_python({
-            "type": "tool_use", "id": "tu_1", "name": "calc", "input": {"x": 1}
-        })
+        tool_use = adapter.validate_python(
+            {"type": "tool_use", "id": "tu_1", "name": "calc", "input": {"x": 1}}
+        )
         assert isinstance(tool_use, ToolUseBlock)
 
-        tool_result = adapter.validate_python({
-            "type": "tool_result", "tool_use_id": "tu_1", "content": "42"
-        })
+        tool_result = adapter.validate_python(
+            {"type": "tool_result", "tool_use_id": "tu_1", "content": "42"}
+        )
         assert isinstance(tool_result, ToolResultBlock)
 
 
@@ -60,10 +59,13 @@ class TestMessage:
         assert d == {"role": "user", "content": "안녕"}
 
     def test_block_content_to_api_dict(self):
-        msg = Message(role="assistant", content=[
-            TextBlock(text="검색해볼게요"),
-            ToolUseBlock(id="tu_1", name="web_search", input={"query": "날씨"}),
-        ])
+        msg = Message(
+            role="assistant",
+            content=[
+                TextBlock(text="검색해볼게요"),
+                ToolUseBlock(id="tu_1", name="web_search", input={"query": "날씨"}),
+            ],
+        )
         d = msg.to_api_dict()
         assert d["role"] == "assistant"
         assert len(d["content"]) == 2
@@ -71,9 +73,12 @@ class TestMessage:
         assert d["content"][1]["type"] == "tool_use"
 
     def test_tool_result_message(self):
-        msg = Message(role="user", content=[
-            ToolResultBlock(tool_use_id="tu_1", content='{"temp": 20}'),
-        ])
+        msg = Message(
+            role="user",
+            content=[
+                ToolResultBlock(tool_use_id="tu_1", content='{"temp": 20}'),
+            ],
+        )
         d = msg.to_api_dict()
         assert d["role"] == "user"
         assert d["content"][0]["type"] == "tool_result"
@@ -148,3 +153,25 @@ class TestLLMResponse:
         resp = LLMResponse.from_api_response(data)
         assert resp.final_text() == ""
         assert resp.tool_use_blocks() == []
+
+
+class TestLLMStreamChunk:
+    def test_delta_text_chunk(self):
+        chunk = LLMStreamChunk(delta_text="안")
+        assert chunk.delta_text == "안"
+        assert chunk.response is None
+
+    def test_response_chunk(self):
+        response = LLMResponse.from_api_response(
+            {
+                "id": "msg_stream_1",
+                "model": "claude-sonnet-4-20250514",
+                "stop_reason": "end_turn",
+                "content": [{"type": "text", "text": "완료"}],
+                "usage": {"input_tokens": 3, "output_tokens": 1},
+            }
+        )
+        chunk = LLMStreamChunk(response=response)
+        assert chunk.delta_text is None
+        assert chunk.response is not None
+        assert chunk.response.final_text() == "완료"
