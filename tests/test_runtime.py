@@ -9,11 +9,11 @@ from unittest.mock import AsyncMock
 import pytest
 from pydantic import BaseModel, Field
 
-from sonya_core.llm.errors import LLMAPIError
-from sonya_core.llm.models import LLMResponse, LLMStreamChunk, StopReason, Usage
-from sonya_core.runtime.agent import AgentRuntime
-from sonya_core.tools.base import BaseTool
-from sonya_core.tools.registry import ToolRegistry
+from sonya.core.llm.errors import LLMAPIError
+from sonya.core.llm.models import LLMResponse, LLMStreamChunk, StopReason, Usage
+from sonya.core.runtime.agent import AgentRuntime
+from sonya.core.tools.base import BaseTool
+from sonya.core.tools.registry import ToolRegistry
 
 
 # ── 테스트용 Tool ──────────────────────────────────────────────

@@ -6,10 +6,10 @@ python -m pytest tests/test_tools.py -v
 import pytest
 from pydantic import BaseModel, Field
 
-from sonya_core.tools.base import BaseTool, ToolError, ToolResult
-from sonya_core.tools.examples.web_search import WebSearchTool
-from sonya_core.tools.examples.write_file import WriteFileTool
-from sonya_core.tools.registry import ToolRegistry
+from sonya.core.tools.base import BaseTool, ToolError, ToolResult
+from sonya.core.tools.examples.web_search import WebSearchTool
+from sonya.core.tools.examples.write_file import WriteFileTool
+from sonya.core.tools.registry import ToolRegistry
 
 
 # ── 테스트용 더미 Tool ─────────────────────────────────────────

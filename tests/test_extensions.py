@@ -17,11 +17,11 @@ from unittest.mock import AsyncMock
 import pytest
 from pydantic import BaseModel, Field
 
-from sonya_core.tools.base import BaseTool
-from sonya_core.tools.context import ToolContext
-from sonya_core.tools.error import ToolError
-from sonya_core.tools.models import ToolResult
-from sonya_core.tools.registry import ToolRegistry
+from sonya.core.tools.base import BaseTool
+from sonya.core.tools.context import ToolContext
+from sonya.core.tools.error import ToolError
+from sonya.core.tools.models import ToolResult
+from sonya.core.tools.registry import ToolRegistry
 
 
 # ── ToolContext 테스트 ─────────────────────────────────────────

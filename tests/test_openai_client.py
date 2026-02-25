@@ -10,9 +10,9 @@ import json
 import httpx
 import pytest
 
-from sonya_core.llm.client.openai import OpenAIClient
-from sonya_core.llm.errors import LLMAPIError
-from sonya_core.llm.models import StopReason
+from sonya.core.llm.client.openai import OpenAIClient
+from sonya.core.llm.errors import LLMAPIError
+from sonya.core.llm.models import StopReason
 
 
 def _make_mock_transport(response_body: dict, status_code: int = 200):
@@ -289,19 +289,19 @@ class TestProviderSchema:
     """BaseTool.to_llm_schema(provider=...) 테스트"""
 
     def test_anthropic_format_default(self):
-        from sonya_core.tools.examples.web_search import WebSearchTool
+        from sonya.core.tools.examples.web_search import WebSearchTool
         schema = WebSearchTool().to_llm_schema()
         assert "input_schema" in schema
         assert "name" in schema
         assert "type" not in schema
 
     def test_anthropic_format_explicit(self):
-        from sonya_core.tools.examples.web_search import WebSearchTool
+        from sonya.core.tools.examples.web_search import WebSearchTool
         schema = WebSearchTool().to_llm_schema(provider="anthropic")
         assert "input_schema" in schema
 
     def test_openai_format(self):
-        from sonya_core.tools.examples.web_search import WebSearchTool
+        from sonya.core.tools.examples.web_search import WebSearchTool
         schema = WebSearchTool().to_llm_schema(provider="openai")
         assert schema["type"] == "function"
         assert "function" in schema
@@ -311,8 +311,8 @@ class TestProviderSchema:
         assert "query" in fn["parameters"]["properties"]
 
     def test_registry_schemas_with_provider(self):
-        from sonya_core.tools.examples.web_search import WebSearchTool
-        from sonya_core.tools.registry import ToolRegistry
+        from sonya.core.tools.examples.web_search import WebSearchTool
+        from sonya.core.tools.registry import ToolRegistry
 
         registry = ToolRegistry()
         registry.register(WebSearchTool())

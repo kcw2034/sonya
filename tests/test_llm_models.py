@@ -3,7 +3,7 @@ LLM 모델 직렬화/역직렬화 테스트
 python -m pytest tests/test_llm_models.py -v
 """
 
-from sonya_core.llm.models import (
+from sonya.core.llm.models import (
     ContentBlock,
     LLMStreamChunk,
     LLMResponse,

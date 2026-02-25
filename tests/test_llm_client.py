@@ -10,9 +10,9 @@ import json
 import httpx
 import pytest
 
-from sonya_core.llm.client import AnthropicClient
-from sonya_core.llm.errors import LLMAPIError
-from sonya_core.llm.models import StopReason
+from sonya.core.llm.client import AnthropicClient
+from sonya.core.llm.errors import LLMAPIError
+from sonya.core.llm.models import StopReason
 
 
 def _make_mock_transport(response_body: dict, status_code: int = 200):

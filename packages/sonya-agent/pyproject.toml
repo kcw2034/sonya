@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sonya-agent"
+version = "0.0.1"
+description = "경량 범용 AI 에이전트 프레임워크 — 에이전트 레이어"
+license = "MIT"
+requires-python = ">=3.11"
+authors = [
+    {name = "Sonya Contributors"},
+]
+dependencies = [
+    "sonya-core>=0.0.1",
+]
+
+[project.urls]
+Repository = "https://github.com/kcw2034/sonya"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"

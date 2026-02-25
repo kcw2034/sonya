@@ -38,3 +38,4 @@ pip-wheel-metadata/
 # Local agent/tooling state
 .claude/
 .opencode/
+opencode.json

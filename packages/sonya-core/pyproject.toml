@@ -5,8 +5,8 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "sonya-core"
 version = "0.0.1"
-description = "경량 범용 AI 에이전트 프레임워크"
-readme = "README.md"
+description = "경량 범용 AI 에이전트 프레임워크 — 코어 라이브러리"
+readme = "../../README.md"
 license = "MIT"
 requires-python = ">=3.11"
 authors = [
@@ -27,32 +27,11 @@ dependencies = [
     "python-dotenv",
 ]
 
-[project.optional-dependencies]
-dev = [
-    "pytest",
-    "pytest-asyncio",
-]
-
 [project.urls]
 Repository = "https://github.com/kcw2034/sonya"
 
-[tool.setuptools]
-packages = [
-    "sonya_core",
-    "sonya_core.llm",
-    "sonya_core.llm.client",
-    "sonya_core.runtime",
-    "sonya_core.tools",
-    "sonya_core.tools.examples",
-]
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.setuptools.package-dir]
-"sonya_core" = "src/sonya-core"
-"sonya_core.llm" = "src/sonya-core/llm"
-"sonya_core.llm.client" = "src/sonya-core/llm/client"
-"sonya_core.runtime" = "src/sonya-core/runtime"
-"sonya_core.tools" = "src/sonya-core/tools"
-"sonya_core.tools.examples" = "src/sonya-core/tools/examples"
-
-[tool.pytest.ini_options]
-asyncio_mode = "auto"
+"" = "src"

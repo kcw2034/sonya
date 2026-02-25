@@ -1,6 +1,6 @@
 """
 로깅 설정 유틸
-- setup_logging()으로 sonya_core 전체 로거 설정
+- setup_logging()으로 sonya.core 전체 로거 설정
 - JSON 포맷 옵션 (구조화 로깅)
 """
 
@@ -11,7 +11,7 @@ import logging
 import sys
 from typing import Literal
 
-SONYA_LOGGER_NAME = "sonya_core"
+SONYA_LOGGER_NAME = "sonya.core"
 
 DEFAULT_FORMAT = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 DEFAULT_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
@@ -38,7 +38,7 @@ def setup_logging(
     stream: object = None,
 ) -> logging.Logger:
     """
-    sonya_core 루트 로거를 설정한다.
+    sonya.core 루트 로거를 설정한다.
 
     Args:
         level: 로그 레벨 (예: logging.DEBUG, "DEBUG")
@@ -46,7 +46,7 @@ def setup_logging(
         stream: 출력 스트림 (기본: sys.stderr)
 
     Returns:
-        설정된 sonya_core 루트 로거
+        설정된 sonya.core 루트 로거
     """
     logger = logging.getLogger(SONYA_LOGGER_NAME)
 
