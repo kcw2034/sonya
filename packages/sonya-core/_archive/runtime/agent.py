@@ -11,7 +11,7 @@ from collections.abc import AsyncIterator
 import logging
 
 from ..llm.base import BaseLLMClient
-from ..llm.errors import LLMAPIError
+from ..llm.error import LLMAPIError
 from ..llm.models import Message, StopReason, ToolResultBlock
 from ..tools.context import ToolContext
 from ..tools.registry import ToolRegistry
@@ -141,9 +141,7 @@ class AgentRuntime:
             final_response = None
 
             try:
-                stream = self.client.chat_stream(
-                    messages=api_messages, tools=tools
-                )
+                stream = self.client.chat_stream(messages=api_messages, tools=tools)
             except LLMAPIError as e:
                 logger.error(
                     f"LLM 스트림 호출 실패: [{e.provider}] {e.status_code} - {e.message}"

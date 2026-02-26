@@ -1,19 +1,13 @@
-"""sonya.core — 경량 LLM 클라이언트 프레임워크."""
+"""Provider 클라이언트 re-export."""
 
-from sonya.core._types import ClientConfig, Interceptor
 from sonya.core.client._base import BaseClient
 from sonya.core.client.anthropic import AnthropicClient
 from sonya.core.client.gemini import GeminiClient
 from sonya.core.client.openai import OpenAIClient
-
-__version__ = "0.0.1"
 
 __all__ = [
     "BaseClient",
     "AnthropicClient",
     "GeminiClient",
     "OpenAIClient",
-    "ClientConfig",
-    "Interceptor",
-    "__version__",
 ]

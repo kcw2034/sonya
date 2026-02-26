@@ -40,3 +40,26 @@ class LLMAPIError(Exception):
             f"[{provider}] API error {status_code}: {message}"
             f" (retryable={self.retryable})"
         )
+
+
+class StructuredOutputError(Exception):
+    """
+    Structured Output 파싱 실패 시 발생하는 예외
+
+    LLM 응답을 지정된 Pydantic 스키마로 파싱할 수 없을 때 발생한다.
+
+    Attributes:
+        schema_name: 대상 Pydantic 모델 클래스명
+        raw_output: LLM이 반환한 원본 텍스트
+        message: 파싱 실패 상세 메시지
+    """
+
+    def __init__(
+        self,
+        schema_name: str,
+        raw_output: str,
+        message: str,
+    ):
+        self.schema_name = schema_name
+        self.raw_output = raw_output
+        super().__init__(f"Structured output 파싱 실패 ({schema_name}): {message}")

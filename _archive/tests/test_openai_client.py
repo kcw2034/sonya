@@ -11,66 +11,75 @@ import httpx
 import pytest
 
 from sonya.core.llm.client.openai import OpenAIClient
-from sonya.core.llm.errors import LLMAPIError
+from sonya.core.llm.error import LLMAPIError
 from sonya.core.llm.models import StopReason
+from sonya.core.utils.llm.client.openai import _convert_messages, _convert_tools
 
 
 def _make_mock_transport(response_body: dict, status_code: int = 200):
     """테스트용 httpx MockTransport 생성"""
+
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(
             status_code=status_code,
             json=response_body,
         )
+
     return httpx.MockTransport(handler)
 
 
 MOCK_TEXT_RESPONSE = {
     "id": "chatcmpl-mock-1",
     "model": "gpt-4o",
-    "choices": [{
-        "message": {
-            "role": "assistant",
-            "content": "모의 응답입니다.",
-        },
-        "finish_reason": "stop",
-    }],
+    "choices": [
+        {
+            "message": {
+                "role": "assistant",
+                "content": "모의 응답입니다.",
+            },
+            "finish_reason": "stop",
+        }
+    ],
     "usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
 }
 
 MOCK_TOOL_CALL_RESPONSE = {
     "id": "chatcmpl-mock-2",
     "model": "gpt-4o",
-    "choices": [{
-        "message": {
-            "role": "assistant",
-            "content": None,
-            "tool_calls": [
-                {
-                    "id": "call_mock_1",
-                    "type": "function",
-                    "function": {
-                        "name": "web_search",
-                        "arguments": '{"query": "테스트"}',
+    "choices": [
+        {
+            "message": {
+                "role": "assistant",
+                "content": None,
+                "tool_calls": [
+                    {
+                        "id": "call_mock_1",
+                        "type": "function",
+                        "function": {
+                            "name": "web_search",
+                            "arguments": '{"query": "테스트"}',
+                        },
                     },
-                },
-            ],
-        },
-        "finish_reason": "tool_calls",
-    }],
+                ],
+            },
+            "finish_reason": "tool_calls",
+        }
+    ],
     "usage": {"prompt_tokens": 20, "completion_tokens": 15, "total_tokens": 35},
 }
 
 MOCK_MAX_TOKENS_RESPONSE = {
     "id": "chatcmpl-mock-3",
     "model": "gpt-4o",
-    "choices": [{
-        "message": {
-            "role": "assistant",
-            "content": "잘린 응답...",
-        },
-        "finish_reason": "length",
-    }],
+    "choices": [
+        {
+            "message": {
+                "role": "assistant",
+                "content": "잘린 응답...",
+            },
+            "finish_reason": "length",
+        }
+    ],
     "usage": {"prompt_tokens": 10, "completion_tokens": 4096, "total_tokens": 4106},
 }
 
@@ -94,7 +103,9 @@ class TestOpenAIClient:
     @pytest.mark.asyncio
     async def test_chat_text_response(self):
         client = OpenAIClient(api_key="fake-key")
-        client._http = httpx.AsyncClient(transport=_make_mock_transport(MOCK_TEXT_RESPONSE))
+        client._http = httpx.AsyncClient(
+            transport=_make_mock_transport(MOCK_TEXT_RESPONSE)
+        )
 
         response = await client.chat(
             messages=[{"role": "user", "content": "안녕"}],
@@ -106,7 +117,9 @@ class TestOpenAIClient:
     @pytest.mark.asyncio
     async def test_chat_tool_call_response(self):
         client = OpenAIClient(api_key="fake-key")
-        client._http = httpx.AsyncClient(transport=_make_mock_transport(MOCK_TOOL_CALL_RESPONSE))
+        client._http = httpx.AsyncClient(
+            transport=_make_mock_transport(MOCK_TOOL_CALL_RESPONSE)
+        )
 
         response = await client.chat(
             messages=[{"role": "user", "content": "검색해줘"}],
@@ -122,7 +135,9 @@ class TestOpenAIClient:
     @pytest.mark.asyncio
     async def test_chat_max_tokens_response(self):
         client = OpenAIClient(api_key="fake-key")
-        client._http = httpx.AsyncClient(transport=_make_mock_transport(MOCK_MAX_TOKENS_RESPONSE))
+        client._http = httpx.AsyncClient(
+            transport=_make_mock_transport(MOCK_MAX_TOKENS_RESPONSE)
+        )
 
         response = await client.chat(
             messages=[{"role": "user", "content": "긴 질문"}],
@@ -150,7 +165,13 @@ class TestOpenAIClient:
 
         await client.chat(
             messages=[{"role": "user", "content": "테스트"}],
-            tools=[{"name": "calc", "description": "계산기", "input_schema": {"type": "object"}}],
+            tools=[
+                {
+                    "name": "calc",
+                    "description": "계산기",
+                    "input_schema": {"type": "object"},
+                }
+            ],
         )
 
         body = captured_requests[0]
@@ -188,14 +209,18 @@ class TestOpenAIClient:
     @pytest.mark.asyncio
     async def test_context_manager(self):
         async with OpenAIClient(api_key="fake-key") as client:
-            client._http = httpx.AsyncClient(transport=_make_mock_transport(MOCK_TEXT_RESPONSE))
+            client._http = httpx.AsyncClient(
+                transport=_make_mock_transport(MOCK_TEXT_RESPONSE)
+            )
             response = await client.chat(messages=[{"role": "user", "content": "hi"}])
             assert response.id == "chatcmpl-mock-1"
 
     @pytest.mark.asyncio
     async def test_http_error_raises_llm_api_error(self):
         """non-retryable HTTP 에러는 LLMAPIError로 래핑되어 즉시 전파"""
-        error_response = {"error": {"message": "invalid key", "type": "invalid_request_error"}}
+        error_response = {
+            "error": {"message": "invalid key", "type": "invalid_request_error"}
+        }
         client = OpenAIClient(api_key="bad-key")
         client._http = httpx.AsyncClient(
             transport=_make_mock_transport(error_response, status_code=401)
@@ -211,27 +236,30 @@ class TestOpenAIClient:
 class TestMessageConversion:
     """Anthropic → OpenAI 메시지 포맷 변환 테스트"""
 
-    def _client(self):
-        return OpenAIClient(api_key="fake-key")
-
     def test_simple_text(self):
-        client = self._client()
-        result = client._convert_messages([
-            {"role": "user", "content": "안녕"},
-        ])
+        result = _convert_messages(
+            [
+                {"role": "user", "content": "안녕"},
+            ]
+        )
         assert result == [{"role": "user", "content": "안녕"}]
 
     def test_tool_result_conversion(self):
         """Anthropic tool_result → OpenAI tool role"""
-        client = self._client()
-        result = client._convert_messages([
-            {
-                "role": "user",
-                "content": [
-                    {"type": "tool_result", "tool_use_id": "tu_1", "content": '{"result": 42}'},
-                ],
-            },
-        ])
+        result = _convert_messages(
+            [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": "tu_1",
+                            "content": '{"result": 42}',
+                        },
+                    ],
+                },
+            ]
+        )
         assert len(result) == 1
         assert result[0]["role"] == "tool"
         assert result[0]["tool_call_id"] == "tu_1"
@@ -239,16 +267,22 @@ class TestMessageConversion:
 
     def test_assistant_with_tool_use(self):
         """Anthropic assistant tool_use → OpenAI assistant tool_calls"""
-        client = self._client()
-        result = client._convert_messages([
-            {
-                "role": "assistant",
-                "content": [
-                    {"type": "text", "text": "검색하겠습니다."},
-                    {"type": "tool_use", "id": "tu_1", "name": "search", "input": {"q": "날씨"}},
-                ],
-            },
-        ])
+        result = _convert_messages(
+            [
+                {
+                    "role": "assistant",
+                    "content": [
+                        {"type": "text", "text": "검색하겠습니다."},
+                        {
+                            "type": "tool_use",
+                            "id": "tu_1",
+                            "name": "search",
+                            "input": {"q": "날씨"},
+                        },
+                    ],
+                },
+            ]
+        )
         assert len(result) == 1
         msg = result[0]
         assert msg["role"] == "assistant"
@@ -264,7 +298,6 @@ class TestToolConversion:
     """Anthropic → OpenAI Tool 스키마 변환 테스트"""
 
     def test_convert_tools(self):
-        client = OpenAIClient(api_key="fake-key")
         anthropic_tools = [
             {
                 "name": "calculator",
@@ -276,7 +309,7 @@ class TestToolConversion:
                 },
             },
         ]
-        result = client._convert_tools(anthropic_tools)
+        result = _convert_tools(anthropic_tools)
         assert len(result) == 1
         assert result[0]["type"] == "function"
         fn = result[0]["function"]
@@ -290,6 +323,7 @@ class TestProviderSchema:
 
     def test_anthropic_format_default(self):
         from sonya.core.tools.examples.web_search import WebSearchTool
+
         schema = WebSearchTool().to_llm_schema()
         assert "input_schema" in schema
         assert "name" in schema
@@ -297,11 +331,13 @@ class TestProviderSchema:
 
     def test_anthropic_format_explicit(self):
         from sonya.core.tools.examples.web_search import WebSearchTool
+
         schema = WebSearchTool().to_llm_schema(provider="anthropic")
         assert "input_schema" in schema
 
     def test_openai_format(self):
         from sonya.core.tools.examples.web_search import WebSearchTool
+
         schema = WebSearchTool().to_llm_schema(provider="openai")
         assert schema["type"] == "function"
         assert "function" in schema

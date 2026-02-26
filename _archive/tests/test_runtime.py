@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock
 import pytest
 from pydantic import BaseModel, Field
 
-from sonya.core.llm.errors import LLMAPIError
+from sonya.core.llm.error import LLMAPIError
 from sonya.core.llm.models import LLMResponse, LLMStreamChunk, StopReason, Usage
 from sonya.core.runtime.agent import AgentRuntime
 from sonya.core.tools.base import BaseTool

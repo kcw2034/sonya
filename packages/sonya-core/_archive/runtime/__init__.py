@@ -4,5 +4,6 @@ sonya-core.runtime 패키지
 """
 
 from .agent import AgentRuntime
+from .context import HistoryConfig, HistoryManager
 
-__all__ = ["AgentRuntime"]
+__all__ = ["AgentRuntime", "HistoryConfig", "HistoryManager"]

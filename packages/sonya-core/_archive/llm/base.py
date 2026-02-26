@@ -8,14 +8,20 @@ LLM 클라이언트 추상 인터페이스
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from collections.abc import AsyncIterator
 from abc import ABC, abstractmethod
+from typing import TypeVar
 
 import httpx
+from pydantic import BaseModel, ValidationError
 
-from .errors import LLMAPIError, RETRYABLE_STATUS_CODES
+from .error import LLMAPIError, RETRYABLE_STATUS_CODES, StructuredOutputError
 from .models import LLMResponse, LLMStreamChunk
+from .schema import _schema_to_json_schema
+
+T = TypeVar("T", bound=BaseModel)
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +100,7 @@ class BaseLLMClient(ABC):
                     ) from e
 
                 delay = min(
-                    self.retry_base_delay * (self.retry_factor ** attempt),
+                    self.retry_base_delay * (self.retry_factor**attempt),
                     self.retry_max_delay,
                 )
                 logger.warning(
@@ -114,6 +120,63 @@ class BaseLLMClient(ABC):
     async def close(self) -> None:
         """HTTP 클라이언트 종료"""
         ...
+
+    async def chat_structured(
+        self,
+        messages: list[dict],
+        output_schema: type[T],
+    ) -> T:
+        """
+        LLM 응답을 지정된 Pydantic 스키마로 파싱하여 반환
+
+        기본 구현은 tool-use 트릭을 사용한다:
+        1. output_schema를 input_schema로 가진 가상 Tool을 정의
+        2. tool_choice로 해당 Tool 강제 호출
+        3. Tool input을 output_schema로 파싱
+
+        Provider별 서브클래스에서 네이티브 방식으로 오버라이드할 수 있다.
+
+        Args:
+            messages: API 포맷 메시지 리스트
+            output_schema: 응답을 파싱할 Pydantic 모델 클래스
+
+        Returns:
+            output_schema의 인스턴스
+
+        Raises:
+            StructuredOutputError: LLM 응답을 스키마로 파싱할 수 없을 때
+        """
+        tool_name = "_structured_output"
+        json_schema = _schema_to_json_schema(output_schema)
+
+        tool_def = {
+            "name": tool_name,
+            "description": (
+                f"출력을 {output_schema.__name__} 스키마에 맞춰 구조화하여 반환합니다. "
+                "반드시 이 도구를 호출하여 응답하세요."
+            ),
+            "input_schema": json_schema,
+        }
+
+        response = await self.chat(messages=messages, tools=[tool_def])
+
+        tool_blocks = response.tool_use_blocks()
+        if not tool_blocks:
+            raise StructuredOutputError(
+                schema_name=output_schema.__name__,
+                raw_output=response.final_text(),
+                message="LLM이 tool_use 블록을 반환하지 않았습니다.",
+            )
+
+        tool_input = tool_blocks[0].input
+        try:
+            return output_schema.model_validate(tool_input)
+        except ValidationError as e:
+            raise StructuredOutputError(
+                schema_name=output_schema.__name__,
+                raw_output=json.dumps(tool_input, ensure_ascii=False),
+                message=str(e),
+            ) from e
 
     async def chat_stream(
         self,

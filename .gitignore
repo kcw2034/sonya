@@ -39,3 +39,9 @@ pip-wheel-metadata/
 .claude/
 .opencode/
 opencode.json
+
+# Local instruction docs
+CLAUDE.md
+
+# Local research docs
+.docs/

@@ -11,10 +11,14 @@ import json
 import logging
 import os
 from collections.abc import AsyncIterator
+from typing import TypeVar
 
 import httpx
+from pydantic import BaseModel, ValidationError
 
 from ..base import BaseLLMClient
+from ..error import StructuredOutputError
+from ..schema import _schema_to_json_schema
 from ..models import (
     LLMResponse,
     LLMStreamChunk,
@@ -23,6 +27,8 @@ from ..models import (
     ToolUseBlock,
     Usage,
 )
+
+T = TypeVar("T", bound=BaseModel)
 
 logger = logging.getLogger(__name__)
 
@@ -104,8 +110,7 @@ class AnthropicClient(BaseLLMClient):
             body["tools"] = tools
 
         logger.debug(
-            f"[anthropic] chat request: model={self.model}, "
-            f"messages={len(messages)}"
+            f"[anthropic] chat request: model={self.model}, messages={len(messages)}"
         )
 
         response = await http.post(ANTHROPIC_API_URL, json=body)
@@ -117,6 +122,67 @@ class AnthropicClient(BaseLLMClient):
             f"usage=({result.usage.input_tokens}in/{result.usage.output_tokens}out)"
         )
         return result
+
+    async def chat_structured(
+        self,
+        messages: list[dict],
+        output_schema: type[T],
+    ) -> T:
+        """
+        Anthropic tool_choice를 사용한 Structured Output
+
+        tool_choice: {"type": "tool", "name": "..."} 로 특정 Tool 호출을 강제한다.
+        기본 구현(BaseLLMClient)과 달리 tool_choice가 보장되어 더 안정적이다.
+        """
+        http = await self._get_http()
+        tool_name = "_structured_output"
+        json_schema = _schema_to_json_schema(output_schema)
+
+        body: dict = {
+            "model": self.model,
+            "max_tokens": self.max_tokens,
+            "messages": messages,
+            "tools": [
+                {
+                    "name": tool_name,
+                    "description": (
+                        f"출력을 {output_schema.__name__} 스키마에 맞춰 "
+                        "구조화하여 반환합니다."
+                    ),
+                    "input_schema": json_schema,
+                }
+            ],
+            "tool_choice": {"type": "tool", "name": tool_name},
+        }
+        if self.system:
+            body["system"] = self.system
+
+        logger.debug(
+            f"[anthropic] structured output request: model={self.model}, "
+            f"schema={output_schema.__name__}"
+        )
+
+        response = await http.post(ANTHROPIC_API_URL, json=body)
+        response.raise_for_status()
+
+        result = LLMResponse.from_api_response(response.json())
+        tool_blocks = result.tool_use_blocks()
+
+        if not tool_blocks:
+            raise StructuredOutputError(
+                schema_name=output_schema.__name__,
+                raw_output=result.final_text(),
+                message="LLM이 tool_use 블록을 반환하지 않았습니다.",
+            )
+
+        try:
+            return output_schema.model_validate(tool_blocks[0].input)
+        except ValidationError as e:
+            raise StructuredOutputError(
+                schema_name=output_schema.__name__,
+                raw_output=json.dumps(tool_blocks[0].input, ensure_ascii=False),
+                message=str(e),
+            ) from e
 
     async def chat_stream(
         self,
@@ -137,8 +203,7 @@ class AnthropicClient(BaseLLMClient):
             body["tools"] = tools
 
         logger.debug(
-            f"[anthropic] stream request: model={self.model}, "
-            f"messages={len(messages)}"
+            f"[anthropic] stream request: model={self.model}, messages={len(messages)}"
         )
 
         message_id = ""

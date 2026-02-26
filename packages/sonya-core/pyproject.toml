@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "sonya-core"
 version = "0.0.1"
 description = "경량 범용 AI 에이전트 프레임워크 — 코어 라이브러리"
-readme = "../../README.md"
+readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"
 authors = [
@@ -21,11 +21,14 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Typing :: Typed",
 ]
-dependencies = [
-    "pydantic>=2.0",
-    "httpx",
-    "python-dotenv",
-]
+dependencies = []
+
+[project.optional-dependencies]
+anthropic = ["anthropic>=0.40"]
+openai = ["openai>=1.50"]
+gemini = ["google-genai>=1.0"]
+all = ["anthropic>=0.40", "openai>=1.50", "google-genai>=1.0"]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.24"]
 
 [project.urls]
 Repository = "https://github.com/kcw2034/sonya"

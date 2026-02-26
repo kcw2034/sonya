@@ -11,7 +11,7 @@ import httpx
 import pytest
 
 from sonya.core.llm.client import AnthropicClient
-from sonya.core.llm.errors import LLMAPIError
+from sonya.core.llm.error import LLMAPIError
 from sonya.core.llm.models import StopReason
 
 
@@ -208,9 +208,7 @@ class TestAnthropicClient:
         client.retry_base_delay = 0.01  # 테스트 속도를 위해 짧은 대기
         client._http = httpx.AsyncClient(transport=httpx.MockTransport(handler))
 
-        response = await client.chat(
-            messages=[{"role": "user", "content": "hi"}]
-        )
+        response = await client.chat(messages=[{"role": "user", "content": "hi"}])
         assert response.stop_reason == StopReason.END_TURN
         assert call_count == 3  # 2번 실패 + 1번 성공
         await client.close()
@@ -248,9 +246,7 @@ class TestAnthropicClient:
         client.retry_base_delay = 0.01
         client._http = httpx.AsyncClient(transport=httpx.MockTransport(handler))
 
-        response = await client.chat(
-            messages=[{"role": "user", "content": "hi"}]
-        )
+        response = await client.chat(messages=[{"role": "user", "content": "hi"}])
         assert response.stop_reason == StopReason.END_TURN
         assert call_count == 2
         await client.close()

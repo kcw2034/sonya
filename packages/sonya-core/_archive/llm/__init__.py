@@ -18,7 +18,7 @@ from .models import (
     Usage,
 )
 from .base import BaseLLMClient
-from .errors import LLMAPIError, RETRYABLE_STATUS_CODES
+from .error import LLMAPIError, RETRYABLE_STATUS_CODES, StructuredOutputError
 from .client import (
     ANTHROPIC_API_URL,
     ANTHROPIC_API_VERSION,
@@ -33,6 +33,7 @@ __all__ = [
     "BaseLLMClient",
     "LLMAPIError",
     "RETRYABLE_STATUS_CODES",
+    "StructuredOutputError",
     "AnthropicClient",
     "OpenAIClient",
     "GeminiClient",
