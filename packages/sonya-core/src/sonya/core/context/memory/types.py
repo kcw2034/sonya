@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Protocol, runtime_checkable
 
 
 @dataclass(frozen=True, slots=True)
@@ -29,3 +29,28 @@ class NormalizedMessage:
     metadata: dict[str, Any] = field(
         default_factory=dict
     )
+
+
+@runtime_checkable
+class MemoryPipeline(Protocol):
+    """Protocol for cross-provider message transformation.
+
+    Implementations live in the sonya-pipeline package.
+    sonya-core defines only the interface.
+    """
+
+    def normalize(
+        self,
+        history: list[dict[str, Any]],
+        source_provider: str,
+    ) -> list[NormalizedMessage]:
+        """Normalize provider-native history to generic form."""
+        ...
+
+    def reconstruct(
+        self,
+        messages: list[NormalizedMessage],
+        target_provider: str,
+    ) -> list[dict[str, Any]]:
+        """Reconstruct normalized messages to provider-native form."""
+        ...

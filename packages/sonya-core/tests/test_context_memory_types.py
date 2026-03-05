@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import pytest
 
-from sonya.core.context.memory.types import NormalizedMessage
+from typing import Any
+
+from sonya.core.context.memory.types import MemoryPipeline, NormalizedMessage
 
 
 class TestNormalizedMessage:
@@ -41,3 +43,34 @@ class TestNormalizedMessage:
     def test_slots(self) -> None:
         msg = NormalizedMessage(role='user', content='hi')
         assert not hasattr(msg, '__dict__')
+
+
+class TestMemoryPipelineProtocol:
+    """Verify MemoryPipeline Protocol compliance."""
+
+    def test_protocol_is_runtime_checkable(self) -> None:
+        assert isinstance(MemoryPipeline, type)
+
+    def test_conforming_class_isinstance(self) -> None:
+        class FakePipeline:
+            def normalize(
+                self,
+                history: list[dict[str, Any]],
+                source_provider: str,
+            ) -> list[NormalizedMessage]:
+                return []
+
+            def reconstruct(
+                self,
+                messages: list[NormalizedMessage],
+                target_provider: str,
+            ) -> list[dict[str, Any]]:
+                return []
+
+        assert isinstance(FakePipeline(), MemoryPipeline)
+
+    def test_non_conforming_class(self) -> None:
+        class NotAPipeline:
+            pass
+
+        assert not isinstance(NotAPipeline(), MemoryPipeline)
