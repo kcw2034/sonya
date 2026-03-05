@@ -1,0 +1,155 @@
+"""Generate JSON Schema from function type hints (stdlib only)."""
+
+import dataclasses
+import inspect
+import types
+from typing import Any, Union, get_type_hints
+
+_TYPE_MAP: dict[type, str] = {
+    str: 'string',
+    int: 'integer',
+    float: 'number',
+    bool: 'boolean',
+}
+
+
+def _is_union(annotation: Any) -> bool:
+    """Check if annotation is a Union type (typing.Union or T | None)."""
+    origin = getattr(annotation, '__origin__', None)
+    if origin is Union:
+        return True
+    if isinstance(annotation, types.UnionType):
+        return True
+    return False
+
+
+def _get_union_args(annotation: Any) -> tuple[Any, ...]:
+    """Get the type arguments from a Union."""
+    return annotation.__args__
+
+
+def _resolve_type(annotation: Any) -> dict[str, Any]:
+    """Convert a single Python type annotation to a JSON Schema fragment.
+
+    Supports primitives, list[T], dict[str, T], Optional (T | None),
+    and dataclasses (expanded as nested object schemas).
+    """
+    # Union / T | None (both typing.Union and types.UnionType)
+    if _is_union(annotation):
+        args = [
+            a for a in _get_union_args(annotation)
+            if a is not type(None)
+        ]
+        if len(args) == 1:
+            schema = _resolve_type(args[0])
+            schema['nullable'] = True
+            return schema
+        return {'anyOf': [_resolve_type(a) for a in args]}
+
+    origin = getattr(annotation, '__origin__', None)
+
+    # list[T]
+    if origin is list:
+        type_args = getattr(annotation, '__args__', None)
+        item_type = type_args[0] if type_args else Any
+        return {'type': 'array', 'items': _resolve_type(item_type)}
+
+    # dict[str, T]
+    if origin is dict:
+        type_args = getattr(annotation, '__args__', None)
+        val_type = type_args[1] if type_args else Any
+        return {
+            'type': 'object',
+            'additionalProperties': _resolve_type(val_type),
+        }
+
+    # Dataclass -> nested object
+    if dataclasses.is_dataclass(annotation) and isinstance(
+        annotation, type
+    ):
+        return _dataclass_to_schema(annotation)
+
+    # Primitives
+    if annotation in _TYPE_MAP:
+        return {'type': _TYPE_MAP[annotation]}
+
+    # Fallback
+    return {'type': 'string'}
+
+
+def _dataclass_to_schema(cls: type) -> dict[str, Any]:
+    """Convert a dataclass to a JSON Schema object."""
+    hints = get_type_hints(cls)
+    fields = dataclasses.fields(cls)
+    properties: dict[str, Any] = {}
+    required: list[str] = []
+
+    for f in fields:
+        properties[f.name] = _resolve_type(hints[f.name])
+        if (
+            f.default is dataclasses.MISSING
+            and f.default_factory is dataclasses.MISSING
+        ):
+            required.append(f.name)
+
+    schema: dict[str, Any] = {
+        'type': 'object',
+        'properties': properties,
+    }
+    if required:
+        schema['required'] = required
+    return schema
+
+
+def _safe_get_hints(fn: Any) -> dict[str, Any]:
+    """Get type hints, falling back to manual resolution on error.
+
+    Handles locally-defined types (e.g. dataclasses inside functions)
+    by including the function's global namespace for evaluation.
+    """
+    try:
+        return get_type_hints(fn)
+    except Exception:
+        # Build a namespace that includes the function's globals
+        globalns = getattr(fn, '__globals__', {})
+        raw = getattr(fn, '__annotations__', {})
+        resolved: dict[str, Any] = {}
+        for name, hint in raw.items():
+            if isinstance(hint, str):
+                try:
+                    resolved[name] = eval(hint, globalns)  # noqa: S307
+                except Exception:
+                    resolved[name] = str
+            else:
+                resolved[name] = hint
+        return resolved
+
+
+def function_to_schema(fn: Any) -> dict[str, Any]:
+    """Generate a JSON Schema ``parameters`` object from *fn*'s type hints.
+
+    Skips ``self``, ``cls``, and ``return`` annotations. Parameters without
+    a default value are marked as required.
+    """
+    sig = inspect.signature(fn)
+    hints = _safe_get_hints(fn)
+
+    properties: dict[str, Any] = {}
+    required: list[str] = []
+
+    for name, param in sig.parameters.items():
+        if name in ('self', 'cls'):
+            continue
+        annotation = hints.get(name, str)
+        properties[name] = _resolve_type(annotation)
+
+        if param.default is inspect.Parameter.empty:
+            required.append(name)
+
+    schema: dict[str, Any] = {
+        'type': 'object',
+        'properties': properties,
+    }
+    if required:
+        schema['required'] = required
+    return schema
