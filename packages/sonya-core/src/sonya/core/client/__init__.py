@@ -1,8 +1,8 @@
-"""Provider 클라이언트 re-export."""
+"""Provider client re-exports."""
 
-from sonya.core.client._base import BaseClient
+from sonya.core.client.base import BaseClient
 from sonya.core.client.anthropic import AnthropicClient
-from sonya.core.client.gemini import GeminiClient
+from sonya.core.client.google import GeminiClient
 from sonya.core.client.openai import OpenAIClient
 
 __all__ = [
