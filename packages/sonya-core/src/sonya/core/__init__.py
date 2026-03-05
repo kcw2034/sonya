@@ -28,6 +28,11 @@ from sonya.core.orchestration import (
     SupervisorConfig,
     SupervisorRuntime,
 )
+from sonya.core.context import (
+    ContextRouter,
+    MemoryPipeline,
+    NormalizedMessage,
+)
 from sonya.core.logging import DebugCallback, LoggingInterceptor
 
 __version__ = "0.0.1"
@@ -68,6 +73,10 @@ __all__ = [
     "CacheConfig",
     "CachedContent",
     "CacheUsage",
+    # Context Routing
+    "ContextRouter",
+    "MemoryPipeline",
+    "NormalizedMessage",
     # Logging
     "DebugCallback",
     "LoggingInterceptor",
