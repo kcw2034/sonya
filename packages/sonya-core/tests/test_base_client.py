@@ -1,19 +1,21 @@
-"""BaseClient 및 interceptor 체인 테스트."""
+"""BaseClient and interceptor chain tests."""
 
 import pytest
 
-from sonya.core._types import ClientConfig
-from sonya.core.client._base import BaseClient
+from sonya.core.types import ClientConfig
+from sonya.core.client.base import BaseClient
 from typing import Any, AsyncIterator
 
 
 class DummyClient(BaseClient):
-    """테스트용 더미 클라이언트."""
+    """Dummy client for testing."""
 
-    async def _do_generate(self, messages: list[dict[str, Any]], **kwargs: Any) -> Any:
+    async def _provider_generate(
+        self, messages: list[dict[str, Any]], **kwargs: Any
+    ) -> Any:
         return {"echo": messages, **kwargs}
 
-    async def _do_generate_stream(
+    async def _provider_generate_stream(
         self, messages: list[dict[str, Any]], **kwargs: Any
     ) -> AsyncIterator[Any]:
         for msg in messages:
@@ -21,7 +23,7 @@ class DummyClient(BaseClient):
 
 
 class LogInterceptor:
-    """before/after 를 기록하는 테스트 interceptor."""
+    """Test interceptor that records before/after calls."""
 
     def __init__(self) -> None:
         self.before_calls: list[tuple] = []

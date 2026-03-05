@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from typing import Any, AsyncIterator
 
-from sonya.core._types import ClientConfig
-from sonya.core.client._base import BaseClient
+from sonya.core.types import ClientConfig
+from sonya.core.client.base import BaseClient
 
 
 class AnthropicClient(BaseClient):
-    """anthropic.AsyncAnthropic 를 감싸는 thin wrapper.
+    """Thin wrapper around anthropic.AsyncAnthropic.
 
-    kwargs 는 messages.create() 에 그대로 패스스루된다.
+    kwargs are passed through to messages.create().
     """
 
     def __init__(self, config: ClientConfig) -> None:
@@ -20,29 +20,43 @@ class AnthropicClient(BaseClient):
             from anthropic import AsyncAnthropic
         except ImportError as e:
             raise ImportError(
-                "anthropic 패키지가 필요합니다: pip install sonya-core[anthropic]"
+                'anthropic package required: '
+                'pip install sonya-core[anthropic]'
             ) from e
 
-        init_kwargs: dict[str, Any] = {}
-        if config.api_key:
-            init_kwargs["api_key"] = config.api_key
-        self._sdk = AsyncAnthropic(**init_kwargs)
+        self._sdk = AsyncAnthropic(
+            **self._build_init_kwargs()
+        )
 
-    async def _do_generate(
-        self, messages: list[dict[str, Any]], **kwargs: Any
+    def _apply_defaults(
+        self, kwargs: dict[str, Any]
+    ) -> None:
+        """Set Anthropic-specific default kwargs."""
+        kwargs.setdefault('model', self._config.model)
+        kwargs.setdefault('max_tokens', 1024)
+
+    async def _provider_generate(
+        self,
+        messages: list[dict[str, Any]],
+        **kwargs: Any,
     ) -> Any:
-        kwargs.setdefault("model", self._config.model)
-        kwargs.setdefault("max_tokens", 1024)
-        return await self._sdk.messages.create(messages=messages, **kwargs)
+        self._apply_defaults(kwargs)
+        return await self._sdk.messages.create(
+            messages=messages, **kwargs
+        )
 
-    async def _do_generate_stream(
-        self, messages: list[dict[str, Any]], **kwargs: Any
+    async def _provider_generate_stream(
+        self,
+        messages: list[dict[str, Any]],
+        **kwargs: Any,
     ) -> AsyncIterator[Any]:
-        kwargs.setdefault("model", self._config.model)
-        kwargs.setdefault("max_tokens", 1024)
-        async with self._sdk.messages.stream(messages=messages, **kwargs) as stream:
+        self._apply_defaults(kwargs)
+        async with self._sdk.messages.stream(
+            messages=messages, **kwargs
+        ) as stream:
             async for text in stream.text_stream:
                 yield text
 
     async def close(self) -> None:
+        """Release the underlying SDK resources."""
         await self._sdk.close()
