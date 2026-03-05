@@ -1,6 +1,19 @@
 """sonya.core — lightweight LLM client framework with multi-agent support."""
 
-from sonya.core.types import AgentCallback, ClientConfig, Interceptor
+from sonya.core.types import (
+    AgentCallback,
+    CacheConfig,
+    CachedContent,
+    CacheUsage,
+    ClientConfig,
+    Interceptor,
+)
+from sonya.core.context.cache import (
+    AnthropicCache,
+    BaseCache,
+    GeminiCache,
+    OpenAICache,
+)
 from sonya.core.client.base import BaseClient
 from sonya.core.client.anthropic import AnthropicClient
 from sonya.core.client.google import GeminiClient
@@ -47,6 +60,14 @@ __all__ = [
     "RunnerConfig",
     "SupervisorConfig",
     "SupervisorRuntime",
+    # Cache
+    "BaseCache",
+    "AnthropicCache",
+    "GeminiCache",
+    "OpenAICache",
+    "CacheConfig",
+    "CachedContent",
+    "CacheUsage",
     # Logging
     "DebugCallback",
     "LoggingInterceptor",
