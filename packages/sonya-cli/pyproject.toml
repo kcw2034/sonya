@@ -1,0 +1,31 @@
+[project]
+name = "sonya-cli"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "kcw2034", email = "cksdn2034@gmail.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "cyclopts>=4.6.0",
+    "python-dotenv>=1.2.2",
+    "sonya-core",
+    "textual>=8.0.1",
+]
+
+[project.scripts]
+sonya = "sonya.cli.cli:app"
+
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.uv.sources]
+sonya-core = { path = "../sonya-core", editable = true }
