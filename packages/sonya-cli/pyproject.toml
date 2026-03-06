@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [project.scripts]
-sonya = "sonya.cli.cli:app"
+sonya = "sonya.cli.client.cli:app"
 
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]

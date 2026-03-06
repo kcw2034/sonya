@@ -6,15 +6,15 @@ from typing import Any, AsyncIterator
 
 import pytest
 
-from sonya.core.agent.types import Agent
+from sonya.core.models.agent import Agent
 from sonya.core.client.base import BaseClient
-from sonya.core.context.memory.types import (
+from sonya.core.schemas.memory import (
     MemoryPipeline,
     NormalizedMessage,
 )
-from sonya.core.context.router import ContextRouter
-from sonya.core.tool.context import ToolContext
-from sonya.core.types import ClientConfig
+from sonya.core.utils.router import ContextRouter
+from sonya.core.utils.tool_context import ToolContext
+from sonya.core.schemas.types import ClientConfig
 
 
 # --- Helpers ---

@@ -2,7 +2,7 @@
 
 import pytest
 
-from sonya.core.types import ClientConfig
+from sonya.core.schemas.types import ClientConfig
 from sonya.core.client.base import BaseClient
 from typing import Any, AsyncIterator
 

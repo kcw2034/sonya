@@ -2,12 +2,12 @@
 
 import pytest
 
-from sonya.core.types import (
+from sonya.core.schemas.types import (
     CacheConfig,
     CachedContent,
     CacheUsage,
 )
-from sonya.core.context.cache.anthropic import (
+from sonya.core.client.cache_anthropic import (
     AnthropicCache,
 )
 from unittest.mock import MagicMock

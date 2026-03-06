@@ -5,7 +5,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 from typing import Any
 
-from sonya.core.agent._adapter import (
+from sonya.core.parsers.adapter import (
     AnthropicAdapter,
     GeminiAdapter,
     OpenAIAdapter,

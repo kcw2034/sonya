@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from sonya.core.tool._schema import function_to_schema
+from sonya.core.parsers.schema_parser import function_to_schema
 
 
 @dataclass

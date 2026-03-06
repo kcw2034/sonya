@@ -8,11 +8,11 @@ from typing import Any, AsyncIterator
 
 import pytest
 
-from sonya.core.agent.runtime import AgentRuntime
-from sonya.core.agent.types import Agent
+from sonya.core.models.agent_runtime import AgentRuntime
+from sonya.core.models.agent import Agent
 from sonya.core.client.base import BaseClient
-from sonya.core.logging.callback import DebugCallback
-from sonya.core.logging.events import (
+from sonya.core.utils.callback import DebugCallback
+from sonya.core.schemas.events import (
     AgentEndEvent,
     AgentStartEvent,
     HandoffEvent,
@@ -22,9 +22,9 @@ from sonya.core.logging.events import (
     LogEvent,
     ToolExecutionEvent,
 )
-from sonya.core.logging.interceptor import LoggingInterceptor
-from sonya.core.tool.decorator import tool
-from sonya.core.types import ClientConfig
+from sonya.core.client.interceptor import LoggingInterceptor
+from sonya.core.utils.decorator import tool
+from sonya.core.schemas.types import ClientConfig
 
 
 # --- Helpers ---

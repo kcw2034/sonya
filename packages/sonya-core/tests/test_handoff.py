@@ -7,11 +7,11 @@ from typing import Any, AsyncIterator
 
 import pytest
 
-from sonya.core.agent.runtime import AgentRuntime, _HANDOFF_PREFIX
-from sonya.core.agent.types import Agent
+from sonya.core.models.agent_runtime import AgentRuntime, _HANDOFF_PREFIX
+from sonya.core.models.agent import Agent
 from sonya.core.client.base import BaseClient
-from sonya.core.orchestration.runner import Runner, RunnerConfig
-from sonya.core.types import ClientConfig
+from sonya.core.models.runner import Runner, RunnerConfig
+from sonya.core.schemas.types import ClientConfig
 
 
 class DummyClient(BaseClient):
@@ -163,7 +163,7 @@ async def test_runner_callback() -> None:
     assert 'end:b' in events
 
 
-from sonya.core.context.router import ContextRouter
+from sonya.core.utils.router import ContextRouter
 
 
 @pytest.mark.asyncio

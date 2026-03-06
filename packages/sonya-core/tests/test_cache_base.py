@@ -2,8 +2,8 @@
 
 import pytest
 
-from sonya.core.types import CacheConfig, CachedContent, CacheUsage
-from sonya.core.context.cache.base import BaseCache
+from sonya.core.schemas.types import CacheConfig, CachedContent, CacheUsage
+from sonya.core.client.cache_base import BaseCache
 from typing import Any
 
 

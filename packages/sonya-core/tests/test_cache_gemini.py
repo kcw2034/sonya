@@ -3,12 +3,12 @@
 import pytest
 
 from unittest.mock import AsyncMock, MagicMock, patch
-from sonya.core.types import (
+from sonya.core.schemas.types import (
     CacheConfig,
     CachedContent,
     CacheUsage,
 )
-from sonya.core.context.cache.gemini import GeminiCache
+from sonya.core.client.cache_gemini import GeminiCache
 
 
 @pytest.fixture

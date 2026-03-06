@@ -6,8 +6,8 @@ import asyncio
 
 import pytest
 
-from sonya.core.tool.decorator import tool
-from sonya.core.tool.types import Tool
+from sonya.core.utils.decorator import tool
+from sonya.core.models.tool import Tool
 
 
 def test_sync_function_wrapped_as_tool() -> None:

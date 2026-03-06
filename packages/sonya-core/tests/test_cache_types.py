@@ -2,7 +2,7 @@
 
 import pytest
 
-from sonya.core.types import CacheConfig, CachedContent, CacheUsage
+from sonya.core.schemas.types import CacheConfig, CachedContent, CacheUsage
 
 
 def test_cache_config_defaults():

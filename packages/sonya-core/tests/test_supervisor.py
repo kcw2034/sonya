@@ -7,13 +7,13 @@ from typing import Any, AsyncIterator
 
 import pytest
 
-from sonya.core.agent.types import Agent
+from sonya.core.models.agent import Agent
 from sonya.core.client.base import BaseClient
-from sonya.core.orchestration.supervisor import (
+from sonya.core.models.supervisor import (
     SupervisorConfig,
     SupervisorRuntime,
 )
-from sonya.core.types import ClientConfig
+from sonya.core.schemas.types import ClientConfig
 
 
 class DummyClient(BaseClient):

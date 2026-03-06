@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import ABC
 from typing import Any, AsyncIterator
 
-from sonya.core.types import ClientConfig, Interceptor
+from sonya.core.schemas.types import ClientConfig, Interceptor
 
 
 class BaseClient(ABC):

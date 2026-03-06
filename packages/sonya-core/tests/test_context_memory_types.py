@@ -6,7 +6,7 @@ import pytest
 
 from typing import Any
 
-from sonya.core.context.memory.types import MemoryPipeline, NormalizedMessage
+from sonya.core.schemas.memory import MemoryPipeline, NormalizedMessage
 
 
 class TestNormalizedMessage:
