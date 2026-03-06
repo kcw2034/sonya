@@ -23,6 +23,7 @@ classifiers = [
 ]
 dependencies = [
     "pydantic>=2.0",
+    "sonya-core>=0.0.1",
 ]
 
 [project.optional-dependencies]
