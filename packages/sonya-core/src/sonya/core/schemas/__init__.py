@@ -19,7 +19,9 @@ from sonya.core.schemas.events import (
     ToolExecutionEvent,
 )
 from sonya.core.schemas.memory import (
+    MemoryEntry,
     MemoryPipeline,
+    MemoryType,
     NormalizedMessage,
 )
 
@@ -41,6 +43,8 @@ __all__ = [
     'LogEvent',
     'ToolExecutionEvent',
     # Memory
+    'MemoryEntry',
     'MemoryPipeline',
+    'MemoryType',
     'NormalizedMessage',
 ]

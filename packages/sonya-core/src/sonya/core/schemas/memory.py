@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Protocol, runtime_checkable
 
 
@@ -53,4 +54,45 @@ class MemoryPipeline(Protocol):
         target_provider: str,
     ) -> list[dict[str, Any]]:
         """Reconstruct normalized messages to provider-native form."""
+        ...
+
+
+class MemoryType(Enum):
+    """Memory hierarchy classification.
+
+    Attributes:
+        EPISODIC: Past events, interaction timelines,
+            success/failure sequences.
+        PROCEDURAL: Methodologies, playbooks,
+            tool routines, policy rules.
+        SEMANTIC: General knowledge, facts, relationships,
+            user preferences.
+    """
+
+    EPISODIC = 'episodic'
+    PROCEDURAL = 'procedural'
+    SEMANTIC = 'semantic'
+
+
+@runtime_checkable
+class MemoryEntry(Protocol):
+    """Protocol for memory entries across all tiers.
+
+    Any memory storage implementation must expose
+    these properties at minimum.
+    """
+
+    @property
+    def memory_type(self) -> MemoryType:
+        """Memory tier classification."""
+        ...
+
+    @property
+    def content(self) -> str:
+        """Raw text content of the memory entry."""
+        ...
+
+    @property
+    def timestamp(self) -> float:
+        """Creation time as Unix epoch seconds."""
         ...

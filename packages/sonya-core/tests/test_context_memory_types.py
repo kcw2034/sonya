@@ -6,7 +6,12 @@ import pytest
 
 from typing import Any
 
-from sonya.core.schemas.memory import MemoryPipeline, NormalizedMessage
+from sonya.core.schemas.memory import (
+    MemoryEntry,
+    MemoryPipeline,
+    MemoryType,
+    NormalizedMessage,
+)
 
 
 class TestNormalizedMessage:
@@ -74,3 +79,44 @@ class TestMemoryPipelineProtocol:
             pass
 
         assert not isinstance(NotAPipeline(), MemoryPipeline)
+
+
+class TestMemoryType:
+    """Verify MemoryType enum values."""
+
+    def test_enum_values(self) -> None:
+        assert MemoryType.EPISODIC.value == 'episodic'
+        assert MemoryType.PROCEDURAL.value == 'procedural'
+        assert MemoryType.SEMANTIC.value == 'semantic'
+
+    def test_enum_count(self) -> None:
+        assert len(MemoryType) == 3
+
+
+class TestMemoryEntryProtocol:
+    """Verify MemoryEntry Protocol compliance."""
+
+    def test_protocol_is_runtime_checkable(self) -> None:
+        assert isinstance(MemoryEntry, type)
+
+    def test_conforming_class(self) -> None:
+        class FakeEntry:
+            @property
+            def memory_type(self) -> MemoryType:
+                return MemoryType.EPISODIC
+
+            @property
+            def content(self) -> str:
+                return 'test'
+
+            @property
+            def timestamp(self) -> float:
+                return 0.0
+
+        assert isinstance(FakeEntry(), MemoryEntry)
+
+    def test_non_conforming_class(self) -> None:
+        class NotAnEntry:
+            pass
+
+        assert not isinstance(NotAnEntry(), MemoryEntry)

@@ -34,10 +34,13 @@ from sonya.core.models.supervisor import (
 )
 from sonya.core.utils.router import ContextRouter
 from sonya.core.schemas.memory import (
+    MemoryEntry,
     MemoryPipeline,
+    MemoryType,
     NormalizedMessage,
 )
 from sonya.core.utils.callback import DebugCallback
+from sonya.core.parsers.adapter import register_adapter
 from sonya.core.client.interceptor import LoggingInterceptor
 
 __version__ = "0.0.1"
@@ -80,8 +83,12 @@ __all__ = [
     "CacheUsage",
     # Context Routing
     "ContextRouter",
+    "MemoryEntry",
     "MemoryPipeline",
+    "MemoryType",
     "NormalizedMessage",
+    # Adapter
+    "register_adapter",
     # Logging
     "DebugCallback",
     "LoggingInterceptor",
