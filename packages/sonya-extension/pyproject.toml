@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sonya-extension"
+version = "0.0.1"
+description = "Bidirectional integration between sonya-core and external frameworks"
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = [
+    "sonya-core>=0.0.1",
+]
+
+[project.optional-dependencies]
+langchain = [
+    "langchain-core>=0.3",
+]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
