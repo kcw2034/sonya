@@ -377,6 +377,19 @@ _ADAPTER_MAP: dict[str, type] = {
 }
 
 
+def register_adapter(
+    client_class_name: str,
+    adapter_cls: type,
+) -> None:
+    """Register a custom adapter for a client class.
+
+    Args:
+        client_class_name: The class name of the client.
+        adapter_cls: The adapter class to use.
+    """
+    _ADAPTER_MAP[client_class_name] = adapter_cls
+
+
 def _get_adapter(client: Any) -> ResponseAdapter:
     """Return the appropriate adapter for *client*.
 
