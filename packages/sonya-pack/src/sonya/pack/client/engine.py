@@ -13,7 +13,23 @@ import os
 from pathlib import Path
 from typing import TypedDict
 
-from sonya.pack.schemas.schema import MessageMeta, SessionIndex
+from sonya.core.schemas.memory import MemoryType
+from sonya.pack.schemas.schema import (
+    EpisodicMeta,
+    MessageMeta,
+    ProceduralMeta,
+    SemanticMeta,
+    SessionIndex,
+)
+
+
+# -- Meta class dispatch -------------------------------------------
+
+_META_CLASS: dict[MemoryType, type[MessageMeta]] = {
+    MemoryType.EPISODIC: EpisodicMeta,
+    MemoryType.PROCEDURAL: ProceduralMeta,
+    MemoryType.SEMANTIC: SemanticMeta,
+}
 
 
 # -- Type hints ----------------------------------------------------
@@ -68,6 +84,8 @@ class BinContextEngine:
         text: str,
         *,
         token_count: int | None = None,
+        memory_type: MemoryType = MemoryType.EPISODIC,
+        **meta_kwargs: object,
     ) -> MessageMeta:
         """Append text to the binary log and update metadata.
 
@@ -76,9 +94,12 @@ class BinContextEngine:
             role: Speaker ("user" | "assistant" | "system").
             text: Raw message text to store.
             token_count: (Optional) Estimated token count.
+            memory_type: Memory hierarchy classification.
+            **meta_kwargs: Extra fields for the chosen Meta
+                subclass (e.g. workflow_name, category).
 
         Returns:
-            Created `MessageMeta` instance.
+            Created Meta subclass instance.
         """
         # 1) UTF-8 encoding
         data = text.encode('utf-8')
@@ -88,12 +109,14 @@ class BinContextEngine:
             offset = f.tell()
             f.write(data)
 
-        # 3) Create metadata
-        meta = MessageMeta(
+        # 3) Create metadata via appropriate subclass
+        meta_cls = _META_CLASS[memory_type]
+        meta = meta_cls(
             role=role,
             offset=offset,
             length=len(data),
             token_count=token_count,
+            **meta_kwargs,
         )
 
         # 4) Update session index
@@ -110,6 +133,7 @@ class BinContextEngine:
         session_id: str,
         *,
         last_n_turns: int | None = None,
+        memory_type: MemoryType | None = None,
     ) -> list[MessageDict]:
         """Restore conversation context from binary log via JIT.
 
@@ -120,6 +144,8 @@ class BinContextEngine:
             session_id: Conversation session identifier.
             last_n_turns: Fetch only the last N messages.
                 `None` returns the entire conversation.
+            memory_type: Filter by memory hierarchy tier.
+                `None` returns all tiers.
 
         Returns:
             List of `{"role": "user", "content": "..."}` dicts.
@@ -129,7 +155,14 @@ class BinContextEngine:
             FileNotFoundError: `.bin` file missing.
         """
         session = self._get_session(session_id)
-        targets = session.messages
+        targets = list(session.messages)
+
+        # Filter by memory tier
+        if memory_type is not None:
+            targets = [
+                m for m in targets
+                if m.memory_type == memory_type
+            ]
 
         # Filter to last N turns
         if last_n_turns is not None and last_n_turns > 0:
