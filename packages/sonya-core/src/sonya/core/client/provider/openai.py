@@ -53,7 +53,10 @@ class OpenAIClient(BaseClient):
             )
         )
         async for chunk in _stream:
-            yield chunk
+            delta = chunk.choices[0].delta if chunk.choices else None
+            text = getattr(delta, 'content', None) or ''
+            if text:
+                yield text
 
     async def close(self) -> None:
         """Release the underlying SDK resources."""

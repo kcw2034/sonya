@@ -201,3 +201,79 @@ class TestGeminiAdapter:
         msg = adapter.format_tool_results_message(results)
         assert msg['role'] == 'user'
         assert 'function_response' in msg['parts'][0]
+
+
+# ---- GeminiAdapter.format_messages Tests ----
+
+class TestGeminiFormatMessages:
+    """Tests for GeminiAdapter.format_messages."""
+
+    def test_openai_format_user_message(self) -> None:
+        adapter = GeminiAdapter()
+        msgs = [{'role': 'user', 'content': 'Hello'}]
+        result = adapter.format_messages(msgs)
+        assert result == [
+            {'role': 'user', 'parts': [{'text': 'Hello'}]}
+        ]
+
+    def test_openai_format_assistant_message(self) -> None:
+        adapter = GeminiAdapter()
+        msgs = [{'role': 'assistant', 'content': 'Hi'}]
+        result = adapter.format_messages(msgs)
+        assert result == [
+            {'role': 'model', 'parts': [{'text': 'Hi'}]}
+        ]
+
+    def test_system_role_mapped_to_user(self) -> None:
+        adapter = GeminiAdapter()
+        msgs = [{'role': 'system', 'content': 'Be helpful'}]
+        result = adapter.format_messages(msgs)
+        assert result[0]['role'] == 'user'
+
+    def test_gemini_format_passthrough(self) -> None:
+        adapter = GeminiAdapter()
+        msgs = [
+            {'role': 'model', 'parts': [{'text': 'Hi'}]}
+        ]
+        result = adapter.format_messages(msgs)
+        assert result == msgs
+
+    def test_mixed_formats(self) -> None:
+        adapter = GeminiAdapter()
+        msgs = [
+            {'role': 'user', 'content': 'Hello'},
+            {'role': 'model', 'parts': [{'text': 'Hi'}]},
+            {'role': 'user', 'parts': [
+                {'function_response': {
+                    'name': 'f', 'response': {},
+                }}
+            ]},
+        ]
+        result = adapter.format_messages(msgs)
+        assert result[0] == {
+            'role': 'user', 'parts': [{'text': 'Hello'}]
+        }
+        assert result[1] == msgs[1]
+        assert result[2] == msgs[2]
+
+    def test_empty_content(self) -> None:
+        adapter = GeminiAdapter()
+        msgs = [{'role': 'user', 'content': ''}]
+        result = adapter.format_messages(msgs)
+        assert result == [{'role': 'user', 'parts': []}]
+
+
+# ---- Passthrough format_messages Tests ----
+
+class TestPassthroughFormatMessages:
+    """Anthropic/OpenAI adapters pass messages through."""
+
+    def test_anthropic_passthrough(self) -> None:
+        adapter = AnthropicAdapter()
+        msgs = [{'role': 'user', 'content': 'Hi'}]
+        assert adapter.format_messages(msgs) is msgs
+
+    def test_openai_passthrough(self) -> None:
+        adapter = OpenAIAdapter()
+        msgs = [{'role': 'user', 'content': 'Hi'}]
+        assert adapter.format_messages(msgs) is msgs

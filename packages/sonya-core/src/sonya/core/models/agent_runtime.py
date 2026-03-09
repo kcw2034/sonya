@@ -102,7 +102,8 @@ class AgentRuntime:
                         )
 
             response = await agent.client.generate(
-                history, **gen_kwargs
+                adapter.format_messages(history),
+                **gen_kwargs,
             )
             parsed = adapter.parse(response)
 

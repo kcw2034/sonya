@@ -45,6 +45,24 @@ class ResponseAdapter(Protocol):
         """Parse a native response into :class:`ParsedResponse`."""
         ...
 
+    def format_messages(
+        self,
+        messages: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        """Convert messages to provider-specific format.
+
+        Called by the orchestration layer before passing messages
+        to the client. Providers that use a non-OpenAI message
+        format override this to perform conversion.
+
+        Args:
+            messages: Message list (may be mixed format).
+
+        Returns:
+            Provider-formatted message list.
+        """
+        ...
+
     def format_generate_kwargs(
         self,
         instructions: str,
@@ -78,6 +96,13 @@ class ResponseAdapter(Protocol):
 
 class AnthropicAdapter:
     """Adapter for Anthropic message responses."""
+
+    def format_messages(
+        self,
+        messages: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        """Pass through — Anthropic uses the canonical format."""
+        return messages
 
     def parse(self, response: Any) -> ParsedResponse:
         """Parse Anthropic response.
@@ -161,6 +186,13 @@ class AnthropicAdapter:
 
 class OpenAIAdapter:
     """Adapter for OpenAI chat completion responses."""
+
+    def format_messages(
+        self,
+        messages: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        """Pass through — OpenAI uses the canonical format."""
+        return messages
 
     def parse(self, response: Any) -> ParsedResponse:
         """Parse OpenAI response.
@@ -264,6 +296,52 @@ class OpenAIAdapter:
 
 class GeminiAdapter:
     """Adapter for Google Gemini generate_content responses."""
+
+    _ROLE_MAP: dict[str, str] = {
+        'assistant': 'model',
+        'system': 'user',
+    }
+
+    def format_messages(
+        self,
+        messages: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        """Convert OpenAI-style messages to Gemini format.
+
+        Messages already in Gemini format (containing ``parts``)
+        pass through unchanged. Messages with a ``content`` key
+        are converted to ``{'role': ..., 'parts': [...]}``.
+
+        Args:
+            messages: Mixed-format message list.
+
+        Returns:
+            List of Gemini-formatted message dicts.
+        """
+        converted: list[dict[str, Any]] = []
+        for msg in messages:
+            if 'parts' in msg:
+                converted.append(msg)
+                continue
+            role = self._ROLE_MAP.get(
+                msg.get('role', 'user'),
+                msg.get('role', 'user'),
+            )
+            content = msg.get('content', '')
+            if isinstance(content, str):
+                parts = (
+                    [{'text': content}] if content else []
+                )
+            elif isinstance(content, list):
+                parts = [
+                    {'text': str(c)} for c in content
+                ]
+            else:
+                parts = [{'text': str(content)}]
+            converted.append(
+                {'role': role, 'parts': parts}
+            )
+        return converted
 
     def parse(self, response: Any) -> ParsedResponse:
         """Parse Gemini response.

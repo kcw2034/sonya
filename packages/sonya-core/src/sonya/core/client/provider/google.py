@@ -68,4 +68,6 @@ class GeminiClient(BaseClient):
                 config=_config,
             )
         ):
-            yield chunk
+            text = chunk.text or ''
+            if text:
+                yield text
