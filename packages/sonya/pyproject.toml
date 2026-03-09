@@ -1,0 +1,33 @@
+[project]
+name = "sonya"
+version = "0.1.0"
+description = "Sonya Agent Framework"
+readme = "README.md"
+authors = [
+    { name = "kcw2034", email = "cksdn2034@gmail.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "sonya-core",
+    "sonya-cli",
+]
+
+[project.optional-dependencies]
+pack = ["sonya-pack"]
+pipeline = ["sonya-pipeline"]
+langchain = ["sonya-extension"]
+all = ["sonya-pack", "sonya-pipeline", "sonya-extension"]
+
+[project.scripts]
+sonya = "sonya.cli.client.cli:app"
+
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.uv.sources]
+sonya-core = { path = "../sonya-core", editable = true }
+sonya-cli = { path = "../sonya-cli", editable = true }
+sonya-pack = { path = "../sonya-pack", editable = true }
+sonya-pipeline = { path = "../sonya-pipeline", editable = true }
+sonya-extension = { path = "../sonya-extension", editable = true }

@@ -14,9 +14,6 @@ dependencies = [
     "textual>=8.0.1",
 ]
 
-[project.scripts]
-sonya = "sonya.cli.client.cli:app"
-
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
