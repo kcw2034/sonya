@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from typing import Any, Iterator, List, Optional
 
-from sonya.core.client.base import BaseClient
+from sonya.core.client.provider.base import BaseClient
 from sonya.core.parsers.adapter import _get_adapter
 
 from sonya.extension.schemas.types import (

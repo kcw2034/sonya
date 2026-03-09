@@ -4,9 +4,9 @@ import asyncio
 from typing import Any
 
 from sonya.core import Agent, ClientConfig
-from sonya.core.client.anthropic import AnthropicClient
-from sonya.core.client.openai import OpenAIClient
-from sonya.core.client.google import GeminiClient
+from sonya.core.client.provider.anthropic import AnthropicClient
+from sonya.core.client.provider.openai import OpenAIClient
+from sonya.core.client.provider.google import GeminiClient
 
 
 def create_client(model: str) -> Any:

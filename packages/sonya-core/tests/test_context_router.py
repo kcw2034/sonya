@@ -7,7 +7,7 @@ from typing import Any, AsyncIterator
 import pytest
 
 from sonya.core.models.agent import Agent
-from sonya.core.client.base import BaseClient
+from sonya.core.client.provider.base import BaseClient
 from sonya.core.schemas.memory import (
     MemoryPipeline,
     NormalizedMessage,

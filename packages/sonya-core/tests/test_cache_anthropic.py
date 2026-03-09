@@ -7,7 +7,7 @@ from sonya.core.schemas.types import (
     CachedContent,
     CacheUsage,
 )
-from sonya.core.client.cache_anthropic import (
+from sonya.core.client.cache.anthropic import (
     AnthropicCache,
 )
 from unittest.mock import MagicMock

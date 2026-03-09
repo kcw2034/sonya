@@ -6,7 +6,7 @@ import json as _json
 from dataclasses import dataclass
 from typing import Any, AsyncIterator
 
-from sonya.core.client.base import BaseClient
+from sonya.core.client.provider.base import BaseClient
 from sonya.core.parsers.adapter import ParsedResponse, ParsedToolCall
 from sonya.core.schemas.types import ClientConfig
 

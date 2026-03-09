@@ -8,7 +8,7 @@ from sonya.core.schemas.types import (
     CachedContent,
     CacheUsage,
 )
-from sonya.core.client.cache_gemini import GeminiCache
+from sonya.core.client.cache.gemini import GeminiCache
 
 
 @pytest.fixture

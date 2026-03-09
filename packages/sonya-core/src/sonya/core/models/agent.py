@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from sonya.core.client.base import BaseClient
+from sonya.core.client.provider.base import BaseClient
 from sonya.core.models.tool import Tool
 from sonya.core.schemas.types import AgentCallback
 

@@ -9,7 +9,7 @@ from sonya.core.schemas.types import (
     CachedContent,
     CacheUsage,
 )
-from sonya.core.client.cache_base import BaseCache
+from sonya.core.client.cache.base import BaseCache
 
 _UNSUPPORTED_MSG = (
     'OpenAI does not support explicit'

@@ -10,7 +10,7 @@ import pytest
 
 from sonya.core.models.agent_runtime import AgentRuntime
 from sonya.core.models.agent import Agent
-from sonya.core.client.base import BaseClient
+from sonya.core.client.provider.base import BaseClient
 from sonya.core.utils.callback import DebugCallback
 from sonya.core.schemas.events import (
     AgentEndEvent,
@@ -22,7 +22,7 @@ from sonya.core.schemas.events import (
     LogEvent,
     ToolExecutionEvent,
 )
-from sonya.core.client.interceptor import LoggingInterceptor
+from sonya.core.client.provider.interceptor import LoggingInterceptor
 from sonya.core.utils.decorator import tool
 from sonya.core.schemas.types import ClientConfig
 

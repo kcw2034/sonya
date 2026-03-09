@@ -3,7 +3,7 @@
 import pytest
 
 from sonya.core.schemas.types import CacheConfig, CachedContent, CacheUsage
-from sonya.core.client.cache_base import BaseCache
+from sonya.core.client.cache.base import BaseCache
 from typing import Any
 
 
