@@ -54,6 +54,10 @@ class ChatScreen(Screen[None]):
             'ctrl+m', 'focus_chat',
             'Chat Input', show=True
         ),
+        Binding(
+            'ctrl+y', 'copy_last',
+            'Copy Last', show=True
+        ),
     ]
 
     def __init__(self, **kwargs) -> None:
@@ -174,8 +178,7 @@ class ChatScreen(Screen[None]):
         try:
             log_widget = chat_panel.query_one('#chat-log')
             log_widget.write(
-                '[blue bold]Assistant[/]: ',
-                markup=True,
+                '[blue bold]Assistant[/]: '
             )
 
             async for chunk in (
@@ -187,6 +190,24 @@ class ChatScreen(Screen[None]):
             chat_panel.append_message(
                 'system', f'ERROR: {str(e)}'
             )
+
+    def action_copy_last(self) -> None:
+        """Copy the last assistant response to clipboard."""
+        history = self.agent_manager.history
+        last_response = ''
+        for msg in reversed(history):
+            if msg['role'] == 'assistant':
+                last_response = msg['content']
+                break
+
+        if not last_response:
+            return
+
+        self.app.copy_to_clipboard(last_response)
+        chat_panel = self.query_one(ChatPanel)
+        chat_panel.append_message(
+            'system', 'Last response copied to clipboard.'
+        )
 
     def on_button_pressed(
         self, event: Button.Pressed

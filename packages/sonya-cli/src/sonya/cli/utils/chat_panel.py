@@ -27,7 +27,8 @@ class ChatPanel(Vertical):
 
     def compose(self) -> ComposeResult:
         yield RichLog(
-            id='chat-log', highlight=True, wrap=True
+            id='chat-log', highlight=True,
+            wrap=True, markup=True,
         )
         yield Input(
             placeholder='Type a message...',
