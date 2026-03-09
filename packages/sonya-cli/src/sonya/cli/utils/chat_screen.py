@@ -9,6 +9,11 @@ from textual.widgets import (
     Header, Footer, Input, Select, TextArea, Button
 )
 
+from sonya.cli.utils.auth import (
+    check_api_key,
+    get_provider_by_model,
+    save_api_key,
+)
 from sonya.cli.utils.chat_panel import ChatPanel
 from sonya.cli.utils.settings_panel import SettingsPanel
 from sonya.cli.client.agent_manager import AgentManager
@@ -54,6 +59,7 @@ class ChatScreen(Screen[None]):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         self.agent_manager = AgentManager()
+        self._awaiting_api_key: dict[str, str] | None = None
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -84,23 +90,79 @@ class ChatScreen(Screen[None]):
         if not event.value.strip():
             return
 
-        user_msg = event.value
+        value = event.value.strip()
         event.input.value = ''
-
         chat_panel = self.query_one(ChatPanel)
-        chat_panel.append_message('user', user_msg)
+
+        # Handle API key input mode
+        if self._awaiting_api_key is not None:
+            self._handle_api_key_input(value)
+            return
+
+        chat_panel.append_message('user', value)
 
         # Read the current settings
         settings = self.query_one(SettingsPanel)
-        model = settings.query_one(Select).value
+        model = str(settings.query_one(Select).value)
         sys_prompt = settings.query_one(TextArea).text
 
-        self.agent_manager.configure(
-            str(model), sys_prompt
-        )
+        # Check API key before calling
+        if not check_api_key(model):
+            self._prompt_api_key(model)
+            return
+
+        self.agent_manager.configure(model, sys_prompt)
 
         # Trigger the response generation in background
-        self.generate_response(user_msg)
+        self.generate_response(value)
+
+    def _prompt_api_key(self, model: str) -> None:
+        """Show API key setup prompt in the chat log."""
+        provider = get_provider_by_model(model)
+        if provider is None:
+            return
+
+        chat_panel = self.query_one(ChatPanel)
+        chat_panel.append_message(
+            'system',
+            f'{provider["name"]} API key is not set.\n'
+            f'Get your key at: {provider["url"]}\n'
+            f'Paste your API key below and press Enter.'
+        )
+
+        input_widget = chat_panel.query_one(
+            '#chat-input', Input
+        )
+        input_widget.placeholder = (
+            f'Enter {provider["name"]} API key...'
+        )
+        self._awaiting_api_key = provider
+
+    def _handle_api_key_input(
+        self, api_key: str
+    ) -> None:
+        """Process the API key entered by the user."""
+        provider = self._awaiting_api_key
+        self._awaiting_api_key = None
+
+        chat_panel = self.query_one(ChatPanel)
+        input_widget = chat_panel.query_one(
+            '#chat-input', Input
+        )
+        input_widget.placeholder = 'Type a message...'
+
+        if not api_key:
+            chat_panel.append_message(
+                'system', 'API key setup cancelled.'
+            )
+            return
+
+        save_api_key(provider['env_key'], api_key)
+        chat_panel.append_message(
+            'system',
+            f'{provider["name"]} API key saved. '
+            f'You can now chat with this model.'
+        )
 
     @work(exclusive=True, thread=False)
     async def generate_response(

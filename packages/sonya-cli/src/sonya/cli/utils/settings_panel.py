@@ -47,18 +47,34 @@ class SettingsPanel(Vertical):
         yield Select(
             (
                 (
-                    'Claude 3.5 Sonnet',
-                    'claude-3-5-sonnet-20240620',
+                    'Claude 4.6 Sonnet',
+                    'claude-sonnet-4-6',
+                ),
+                (
+                    'Claude 4.5 Haiku',
+                    'claude-haiku-4-5-20251001',
                 ),
                 ('GPT-4o', 'gpt-4o'),
                 (
-                    'Gemini 1.5 Flash',
-                    'gemini-1.5-flash',
+                    'GPT-4.1',
+                    'gpt-4.1',
+                ),
+                (
+                    'GPT-4.1 mini',
+                    'gpt-4.1-mini',
+                ),
+                (
+                    'Gemini 3 Flash Preview',
+                    'gemini-3-flash-preview',
+                ),
+                (
+                    'Gemini 3.1 Pro Preview',
+                    'gemini-3.1-pro-preview',
                 ),
             ),
             id='model-select',
             allow_blank=False,
-            value='claude-3-5-sonnet-20240620',
+            value='claude-sonnet-4-6',
         )
 
         yield Label(

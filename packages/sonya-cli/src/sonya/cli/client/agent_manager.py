@@ -31,7 +31,7 @@ class AgentManager:
     def __init__(self) -> None:
         self.history: list[dict[str, Any]] = []
         self.system_prompt: str = ''
-        self.model: str = 'claude-3-5-sonnet-20240620'
+        self.model: str = 'claude-sonnet-4-6'
         self._client: Any = None
         self._agent: Agent | None = None
 
