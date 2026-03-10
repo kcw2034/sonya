@@ -45,6 +45,32 @@ _MODELS = [
     {'id': 'gemini-3.1-pro-preview', 'name': 'Gemini 3.1 Pro'},
 ]
 
+_MODEL_KEY_MAP = {
+    'claude': 'ANTHROPIC_API_KEY',
+    'gpt': 'OPENAI_API_KEY',
+    'gemini': 'GOOGLE_API_KEY',
+}
+
+
+def _resolve_api_key(
+    model: str, provided_key: str
+) -> str:
+    """Resolve API key from provided value or env.
+
+    Args:
+        model: Model identifier string.
+        provided_key: User-provided API key.
+
+    Returns:
+        Resolved API key string.
+    """
+    if provided_key:
+        return provided_key
+    for prefix, env_var in _MODEL_KEY_MAP.items():
+        if model.startswith(prefix):
+            return os.environ.get(env_var, '')
+    return ''
+
 
 @app.get('/')
 async def index(request: Request):
@@ -64,9 +90,12 @@ async def create_session(
     body: CreateSessionRequest,
 ) -> CreateSessionResponse:
     """Create a new LLM session."""
+    api_key = _resolve_api_key(
+        body.model, body.api_key
+    )
     session_id = session_manager.create(
         model=body.model,
-        api_key=body.api_key,
+        api_key=api_key,
         system_prompt=body.system_prompt,
     )
     return CreateSessionResponse(

@@ -7,7 +7,7 @@ class CreateSessionRequest(BaseModel):
     """Request body for POST /sessions."""
 
     model: str
-    api_key: str
+    api_key: str = ''
     system_prompt: str = ''
 
 
