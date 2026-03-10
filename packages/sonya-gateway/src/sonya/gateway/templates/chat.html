@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div id="app">
+    <header id="header">
+        <button id="sidebar-toggle" aria-label="Toggle sidebar">&#9776;</button>
+        <h1>Sonya</h1>
+    </header>
+
+    <div id="layout">
+        <aside id="sidebar">
+            <button id="new-chat-btn">+ New Chat</button>
+            <div id="session-list"></div>
+        </aside>
+
+        <main id="chat-area">
+            <div id="messages"></div>
+
+            <div id="input-bar">
+                <textarea id="message-input"
+                    placeholder="Message..."
+                    rows="1"></textarea>
+                <div id="input-controls">
+                    <div id="tool-buttons">
+                        <button id="tone-btn"
+                            class="tool-btn"
+                            title="Tone">&#127917;</button>
+                        <button id="research-btn"
+                            class="tool-btn"
+                            title="Deep Research"
+                            disabled>&#128300;</button>
+                    </div>
+                    <div id="right-controls">
+                        <select id="model-select">
+                            {% for model in models %}
+                            <option value="{{ model.id }}"
+                                {% if loop.first %}selected{% endif %}>
+                                {{ model.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <button id="send-btn" title="Send">&#9650;</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tone-popover" class="popover hidden">
+                <div class="popover-item" data-tone="default">Default</div>
+                <div class="popover-item" data-tone="friendly">Friendly</div>
+                <div class="popover-item" data-tone="formal">Formal</div>
+                <div class="popover-item" data-tone="concise">Concise</div>
+            </div>
+        </main>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/app.js"></script>
+{% endblock %}

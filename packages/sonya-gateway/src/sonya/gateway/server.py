@@ -1,10 +1,13 @@
 """FastAPI server for the Sonya Gateway."""
 
 import json
+import os
 from typing import AsyncGenerator
 
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from sse_starlette.sse import EventSourceResponse
 
 from sonya.gateway.schemas import (
@@ -17,6 +20,39 @@ from sonya.gateway.session import SessionManager
 
 app = FastAPI(title='Sonya Gateway')
 session_manager = SessionManager()
+
+_base_dir = os.path.dirname(os.path.abspath(__file__))
+
+app.mount(
+    '/static',
+    StaticFiles(
+        directory=os.path.join(_base_dir, 'static')
+    ),
+    name='static',
+)
+
+_templates = Jinja2Templates(
+    directory=os.path.join(_base_dir, 'templates')
+)
+
+_MODELS = [
+    {'id': 'claude-sonnet-4-6', 'name': 'Claude 4.6 Sonnet'},
+    {'id': 'claude-haiku-4-5-20251001', 'name': 'Claude 4.5 Haiku'},
+    {'id': 'gpt-4o', 'name': 'GPT-4o'},
+    {'id': 'gpt-4.1', 'name': 'GPT-4.1'},
+    {'id': 'gpt-4.1-mini', 'name': 'GPT-4.1 mini'},
+    {'id': 'gemini-3-flash-preview', 'name': 'Gemini 3 Flash'},
+    {'id': 'gemini-3.1-pro-preview', 'name': 'Gemini 3.1 Pro'},
+]
+
+
+@app.get('/')
+async def index(request: Request):
+    """Serve the chat GUI."""
+    return _templates.TemplateResponse(
+        'chat.html',
+        {'request': request, 'models': _MODELS},
+    )
 
 
 @app.post(
