@@ -199,6 +199,22 @@ class BinContextEngine:
         """Return a list of all registered session IDs."""
         return list(self._sessions.keys())
 
+    def clear_session(self, session_id: str) -> None:
+        """Remove a session and persist the updated index.
+
+        The binary data previously written to the `.bin` file is
+        not compacted — only the metadata index is updated so the
+        session is no longer accessible. Clearing a non-existent
+        session is a no-op.
+
+        Args:
+            session_id: Conversation session identifier to remove.
+        """
+        if session_id not in self._sessions:
+            return
+        del self._sessions[session_id]
+        self._save_metadata()
+
     # -- Metadata persistence --------------------------------------
 
     def _save_metadata(self) -> None:

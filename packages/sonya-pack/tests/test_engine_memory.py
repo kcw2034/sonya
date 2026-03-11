@@ -93,6 +93,36 @@ class TestBuildContextFilter:
         assert result[1]['content'] == 'event 4'
 
 
+class TestClearSession:
+    """Verify clear_session removes a session from the engine."""
+
+    def test_clear_removes_session(self, engine) -> None:
+        engine.add_message('s1', 'user', 'hello')
+        assert 's1' in engine.list_sessions()
+        engine.clear_session('s1')
+        assert 's1' not in engine.list_sessions()
+
+    def test_clear_nonexistent_no_error(self, engine) -> None:
+        # Should not raise when session does not exist
+        engine.clear_session('nonexistent')
+
+    def test_clear_persists_to_disk(self, tmp_path) -> None:
+        engine1 = BinContextEngine(tmp_path)
+        engine1.add_message('s1', 'user', 'hello')
+        engine1.clear_session('s1')
+
+        # Reload — session should not exist
+        engine2 = BinContextEngine(tmp_path)
+        assert 's1' not in engine2.list_sessions()
+
+    def test_clear_only_target_session(self, engine) -> None:
+        engine.add_message('s1', 'user', 'msg1')
+        engine.add_message('s2', 'user', 'msg2')
+        engine.clear_session('s1')
+        assert 's1' not in engine.list_sessions()
+        assert 's2' in engine.list_sessions()
+
+
 class TestMetadataPersistence:
     """Verify memory_type survives save/load cycle."""
 
