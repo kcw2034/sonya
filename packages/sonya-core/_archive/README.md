@@ -1,113 +1,59 @@
-# sonya-core
+# sonya-core (archive)
 
-`sonya-core` is a lightweight Python AI agent framework focused on a tool-first execution loop.
+Legacy implementation archive for the pre-`sonya.core` rewrite.
+This directory is kept for reference only and is not the active runtime.
 
-## Features
+## Status
 
-- Type-safe tools with `BaseTool[InputModel, OutputModel]`
-- Unified LLM response model (`LLMResponse`, `ContentBlock`)
-- Built-in tool loop runtime (`AgentRuntime.run`)
-- Streaming runtime with tool loop (`AgentRuntime.run_stream`)
-- Minimal dependencies (`pydantic`, `httpx`)
+- Archived: no new feature development
+- Kept for migration reference and historical context
+- Active implementation lives in `packages/sonya-core/src/sonya/core/`
 
-## Installation
+## Preserved Scope
 
-```bash
-pip install sonya-core
+- Legacy provider clients under `llm/` (Anthropic/OpenAI/Gemini)
+- Legacy tool system based on `BaseTool[InputT, OutputT]`
+- Legacy runtime loop in `runtime/agent.py`
+- Legacy registry/context utilities in `tools/` and `runtime/context/`
+
+## Layout
+
+```text
+_archive/
+├── llm/                         # Legacy LLM client/model layer
+│   ├── client/
+│   │   ├── anthropic.py
+│   │   ├── openai.py
+│   │   └── google.py
+│   ├── base.py
+│   ├── models.py
+│   └── schema.py
+├── runtime/
+│   ├── agent.py                 # Legacy AgentRuntime (run/run_stream)
+│   └── context/
+│       └── history.py
+├── tools/
+│   ├── base.py                  # BaseTool generic
+│   ├── registry.py
+│   ├── context.py
+│   └── models.py
+├── logging.py
+├── NAMING_CONVENTIONS.md
+└── PROGRESS.md
 ```
 
-Install with development extras:
+## Migration Note
 
-```bash
-pip install "sonya-core[dev]"
-```
+For new development:
 
-## Quick Start
+- Use `sonya.core` API (`from sonya.core import ...`)
+- Follow the active package README:
+  `packages/sonya-core/README.md`
 
-```python
-import asyncio
-from pydantic import BaseModel, Field
+For legacy code maintenance:
 
-from sonya_core.llm import AnthropicClient
-from sonya_core.runtime.agent import AgentRuntime
-from sonya_core.tools.base import BaseTool
-from sonya_core.tools.registry import ToolRegistry
-
-
-class AddInput(BaseModel):
-    a: int = Field(description="first number")
-    b: int = Field(description="second number")
-
-
-class AddOutput(BaseModel):
-    result: int
-
-
-class AddTool(BaseTool[AddInput, AddOutput]):
-    name = "add"
-    description = "Add two numbers"
-
-    async def execute(self, input: AddInput) -> AddOutput:
-        return AddOutput(result=input.a + input.b)
-
-
-async def main() -> None:
-    registry = ToolRegistry()
-    registry.register(AddTool())
-
-    async with AnthropicClient(system="math assistant") as client:
-        runtime = AgentRuntime(client=client, tools=registry)
-        answer = await runtime.run("What is 3 + 5?")
-        print(answer)
-
-
-asyncio.run(main())
-```
-
-## Streaming
-
-```python
-import asyncio
-
-from sonya_core.llm import AnthropicClient
-from sonya_core.runtime.agent import AgentRuntime
-from sonya_core.tools.registry import ToolRegistry
-
-
-async def main() -> None:
-    async with AnthropicClient(system="helpful assistant") as client:
-        runtime = AgentRuntime(client=client, tools=ToolRegistry())
-
-        async for token in runtime.run_stream("Describe Seoul in one sentence"):
-            print(token, end="", flush=True)
-
-        print()
-
-
-asyncio.run(main())
-```
-
-`run_stream()` yields text deltas and continues the loop automatically when `tool_use` appears.
-
-## Environment Variables
-
-- `ANTHROPIC_API_KEY`
-- `OPENAI_API_KEY`
-- `GEMINI_API_KEY`
-
-You can also pass `api_key` directly to each client constructor.
-
-## Supported Providers
-
-- `AnthropicClient`
-- `OpenAIClient`
-- `GeminiClient`
-
-## Test
-
-```bash
-pytest
-```
+- Keep imports pinned to archived module paths used at the time
+- Avoid mixing archived APIs with the new runtime in one code path
 
 ## Requirements
 

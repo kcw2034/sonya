@@ -1,105 +1,172 @@
 # sonya-core
 
-Sonya 프레임워크의 코어 패키지입니다. 공식 LLM SDK thin wrapper를
-기반으로 Tool, Agent Runtime, 멀티에이전트 오케스트레이션을
-제공합니다.
+Core package of the Sonya framework. It provides thin wrappers around
+official LLM SDKs, a tool system, agent runtime, and multi-agent
+orchestration primitives.
 
-## 설치
+## Installation
 
 ```bash
-# 특정 provider
+# specific provider
 pip install -e ".[anthropic]"
 pip install -e ".[openai]"
 pip install -e ".[gemini]"
 
-# 전체
+# all providers + dev dependencies
 pip install -e ".[all,dev]"
 ```
 
-## 구조
+## Structure
 
-```
+```text
 src/sonya/core/
-├── __init__.py          # 공개 API 내보내기
-├── types.py             # ClientConfig, Interceptor, AgentCallback
-├── errors.py            # AgentError, ToolError
+├── __init__.py                    # public API exports
 ├── client/
-│   ├── base.py          # BaseClient ABC
-│   ├── anthropic.py     # anthropic.AsyncAnthropic 래퍼
-│   ├── openai.py        # openai.AsyncOpenAI 래퍼
-│   └── gemini.py        # google.genai.Client 래퍼
-├── tool/
-│   ├── decorator.py     # @tool 데코레이터
-│   ├── registry.py      # ToolRegistry (등록/실행)
-│   ├── context.py       # ToolContext
-│   ├── types.py         # Tool, ToolResult
-│   ├── _schema.py       # Provider별 tool schema 변환
-│   └── _validation.py   # 입력 검증
-├── agent/
-│   ├── runtime.py       # AgentRuntime 루프 실행
-│   ├── types.py         # Agent, AgentResult
-│   └── _adapter.py      # Provider 응답 어댑터
-├── orchestration/
-│   ├── runner.py        # Runner, RunnerConfig, RunnerCallback
-│   ├── supervisor.py    # SupervisorRuntime, SupervisorConfig
-│   └── _handoff.py      # handoff 헬퍼
-└── logging/
-    ├── interceptor.py   # LoggingInterceptor
-    ├── callback.py      # DebugCallback
-    └── events.py        # 구조화 이벤트 모델
+│   ├── provider/                  # Anthropic/OpenAI/Gemini thin clients
+│   │   ├── base.py
+│   │   ├── anthropic.py
+│   │   ├── openai.py
+│   │   ├── google.py
+│   │   └── interceptor.py         # LoggingInterceptor
+│   └── cache/                     # provider cache abstractions/impl
+│       ├── base.py
+│       ├── anthropic.py
+│       ├── openai.py
+│       └── gemini.py
+├── models/                        # Agent/Tool/Runner/Supervisor models
+│   ├── agent.py
+│   ├── agent_runtime.py
+│   ├── tool.py
+│   ├── tool_registry.py
+│   ├── runner.py
+│   └── supervisor.py
+├── parsers/                       # provider response adapters + schema parser
+│   ├── adapter.py
+│   └── schema_parser.py
+├── schemas/                       # shared types/events/memory schemas
+│   ├── types.py
+│   ├── events.py
+│   └── memory.py
+├── utils/                         # decorator/context/router/validation
+│   ├── decorator.py
+│   ├── tool_context.py
+│   ├── router.py
+│   ├── callback.py
+│   ├── handoff.py
+│   └── validation.py
+└── exceptions/
+    └── errors.py                  # AgentError, ToolError
 ```
 
-## 사용법
+## Usage
 
 ```python
+import asyncio
+
 from sonya.core import AnthropicClient, ClientConfig
 
-config = ClientConfig(model="claude-sonnet-4-20250514")
-async with AnthropicClient(config) as client:
-    # SDK kwargs 그대로 패스스루
-    response = await client.generate(
-        messages=[{"role": "user", "content": "Hello"}],
-        max_tokens=2048,
-        temperature=0.7,
-    )
+
+async def main() -> None:
+    config = ClientConfig(model='claude-sonnet-4-6')
+    async with AnthropicClient(config) as client:
+        response = await client.generate(
+            messages=[{'role': 'user', 'content': 'Hello'}],
+            max_tokens=1024,
+            temperature=0.7,
+        )
+        print(response)
+
+
+asyncio.run(main())
 ```
 
-## 설계 원칙
+Tool + AgentRuntime example:
 
-- **Zero core dependencies**: 코어 패키지 자체는 의존성 없음
-- **SDK passthrough**: `**kwargs`가 각 SDK 메서드에 그대로 전달
-- **Native response**: 통합 응답 모델 없이 SDK 원본 응답 반환
-- **Interceptor**: `before_request` / `after_response` 프로토콜로 관측성 제공
+```python
+import asyncio
 
-## 주요 API
+from sonya.core import (
+    Agent,
+    AgentRuntime,
+    ClientConfig,
+    OpenAIClient,
+    tool,
+)
 
-- **Client**: `BaseClient`, `AnthropicClient`, `OpenAIClient`, `GeminiClient`
-- **Tool**: `tool`, `Tool`, `ToolResult`, `ToolContext`, `ToolRegistry`
+
+@tool(description='Add two integers')
+def add(a: int, b: int) -> int:
+    return a + b
+
+
+async def main() -> None:
+    client = OpenAIClient(
+        ClientConfig(model='gpt-4o')
+    )
+    agent = Agent(
+        name='math_agent',
+        client=client,
+        instructions='Use tools when needed.',
+        tools=[add],
+        max_iterations=5,
+    )
+    result = await AgentRuntime(agent).run(
+        [{'role': 'user', 'content': 'What is 7 + 5?'}]
+    )
+    print(result.text)
+    await client.close()
+
+
+asyncio.run(main())
+```
+
+## Design Principles
+
+- **Thin wrapper**: Keep APIs simple while wrapping official SDKs
+- **SDK passthrough**: `**kwargs` are forwarded directly
+- **Native responses**: Return SDK-native response objects
+- **Protocol-driven extension**: `Interceptor`, `AgentCallback`,
+  and `MemoryPipeline` interfaces for customization
+
+## Main APIs
+
+- **Client**: `BaseClient`, `AnthropicClient`, `OpenAIClient`,
+  `GeminiClient`
+- **Cache**: `BaseCache`, `AnthropicCache`, `OpenAICache`,
+  `GeminiCache`, `CacheConfig`, `CacheUsage`
+- **Tool**: `tool`, `Tool`, `ToolResult`, `ToolRegistry`, `ToolContext`
 - **Agent**: `Agent`, `AgentResult`, `AgentRuntime`
-- **Orchestration**: `Runner`, `RunnerConfig`, `RunnerCallback`, `SupervisorRuntime`, `SupervisorConfig`
-- **Logging**: `LoggingInterceptor`, `DebugCallback`
-- **Error**: `AgentError`, `ToolError`
+- **Orchestration**: `Runner`, `RunnerConfig`, `RunnerCallback`,
+  `SupervisorRuntime`, `SupervisorConfig`
+- **Routing/Memory**: `ContextRouter`, `MemoryType`, `MemoryEntry`,
+  `NormalizedMessage`
+- **Logging/Error**: `LoggingInterceptor`, `DebugCallback`,
+  `AgentError`, `ToolError`
 
-## 예제
+## Example
 
 ```bash
 python examples/gemini_agent_demo.py
 ```
 
-`examples/gemini_agent_demo.py`에는 다음 시나리오가 포함되어 있습니다.
+`examples/gemini_agent_demo.py` includes:
 
-- 단일 Agent + Tool 호출
-- Agent handoff 체인 (triage -> specialist)
+- Single agent + tool calls
+- Agent handoff chain (`triage -> weather_specialist`)
 
-## 테스트
+## Tests
 
 ```bash
 pytest tests/ -v
 ```
 
-현재 테스트에는 클라이언트 래퍼 외에도 다음 범위가 포함됩니다.
+Current test coverage:
 
-- `test_tool_decorator.py`, `test_tool_schema.py`
-- `test_agent_runtime.py`, `test_agent_adapter.py`
-- `test_handoff.py`, `test_supervisor.py`
-- `test_logging.py`
+- Provider clients: `test_base_client.py`
+- Cache: `test_cache_anthropic.py`, `test_cache_openai.py`,
+  `test_cache_gemini.py`, `test_cache_base.py`, `test_cache_types.py`
+- Tool: `test_tool_decorator.py`, `test_tool_schema.py`
+- Runtime/Adapter: `test_agent_runtime.py`, `test_agent_adapter.py`
+- Orchestration: `test_handoff.py`, `test_supervisor.py`
+- Routing/Memory: `test_context_router.py`, `test_context_memory_types.py`
+- Logging/Import: `test_logging.py`, `test_imports.py`
