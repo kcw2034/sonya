@@ -93,8 +93,13 @@ def _build_sonya_chat_model_class() -> type:
             Returns:
                 LangChain ChatResult.
             """
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
+            try:
+                asyncio.get_running_loop()
+                _loop_running = True
+            except RuntimeError:
+                _loop_running = False
+
+            if _loop_running:
                 import concurrent.futures
                 with concurrent.futures.ThreadPoolExecutor(
                 ) as pool:

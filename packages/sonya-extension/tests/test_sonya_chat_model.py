@@ -47,6 +47,13 @@ class _MockAnthropicClient(BaseClient):
             self._response_text
         )
 
+    async def _provider_generate_stream(
+        self,
+        messages: list[dict[str, Any]],
+        **kwargs: Any,
+    ) -> AsyncIterator[Any]:
+        yield _MockAnthropicResponse(self._response_text)
+
 
 # Register mock client in adapter map for testing
 _ADAPTER_MAP['_MockAnthropicClient'] = AnthropicAdapter
