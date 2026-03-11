@@ -69,3 +69,42 @@ class TestSessionInfo:
             message_count=5,
         )
         assert info.message_count == 5
+
+
+class TestCreateSessionRequestModelValidation:
+
+    def test_valid_claude_model(self) -> None:
+        req = CreateSessionRequest(
+            model='claude-sonnet-4-6',
+            api_key='sk-test',
+        )
+        assert req.model == 'claude-sonnet-4-6'
+
+    def test_valid_gpt_model(self) -> None:
+        req = CreateSessionRequest(
+            model='gpt-4o',
+            api_key='sk-test',
+        )
+        assert req.model == 'gpt-4o'
+
+    def test_valid_gemini_model(self) -> None:
+        req = CreateSessionRequest(
+            model='gemini-3-flash-preview',
+            api_key='key',
+        )
+        assert req.model == 'gemini-3-flash-preview'
+
+    def test_invalid_model_prefix_raises(self) -> None:
+        import pytest
+        from pydantic import ValidationError
+        with pytest.raises(ValidationError):
+            CreateSessionRequest(
+                model='unknown-model-xyz',
+                api_key='sk-test',
+            )
+
+    def test_empty_model_raises(self) -> None:
+        import pytest
+        from pydantic import ValidationError
+        with pytest.raises(ValidationError):
+            CreateSessionRequest(model='', api_key='sk-test')

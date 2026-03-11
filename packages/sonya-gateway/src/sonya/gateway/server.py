@@ -91,7 +91,7 @@ def _resolve_api_key(
         provided_key: User-provided API key.
 
     Returns:
-        Resolved API key string.
+        Resolved API key string (may be empty if not found).
     """
     if provided_key:
         return provided_key
@@ -99,6 +99,23 @@ def _resolve_api_key(
         if model.startswith(prefix):
             return os.environ.get(env_var, '')
     return ''
+
+
+def _safe_error_message(e: Exception) -> str:
+    """Produce a client-safe error message.
+
+    Returns only the exception class name. The raw message is
+    intentionally omitted to prevent leaking internal file paths,
+    stack traces, or API key fragments to clients. Full details
+    are available in server logs.
+
+    Args:
+        e: The exception to sanitise.
+
+    Returns:
+        A short, safe error string containing only the type name.
+    """
+    return type(e).__name__
 
 
 @app.get('/')
@@ -126,6 +143,19 @@ async def create_session(
     api_key = _resolve_api_key(
         body.model, body.api_key
     )
+    if not api_key:
+        return JSONResponse(
+            status_code=400,
+            content={
+                'detail': (
+                    'API key required. Provide api_key in '
+                    'the request body or set the appropriate '
+                    'environment variable '
+                    '(ANTHROPIC_API_KEY, OPENAI_API_KEY, '
+                    'GOOGLE_API_KEY).'
+                ),
+            },
+        )
     session_id = session_manager.create(
         model=body.model,
         api_key=api_key,
@@ -212,7 +242,7 @@ async def chat(
             yield {
                 'event': 'error',
                 'data': json.dumps(
-                    {'message': str(e)}
+                    {'message': _safe_error_message(e)}
                 ),
             }
 

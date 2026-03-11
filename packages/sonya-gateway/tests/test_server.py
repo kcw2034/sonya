@@ -133,6 +133,98 @@ async def test_chat_session_not_found(
 
 
 @pytest.mark.asyncio
+async def test_create_session_empty_api_key_rejected(
+    mock_session_manager,
+) -> None:
+    """POST /sessions with no resolvable API key must return 400."""
+    import os
+    from unittest.mock import patch as _patch
+
+    # Ensure no env var is set
+    with _patch.dict(
+        os.environ,
+        {
+            'ANTHROPIC_API_KEY': '',
+            'OPENAI_API_KEY': '',
+            'GOOGLE_API_KEY': '',
+        },
+        clear=False,
+    ):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(
+            transport=transport,
+            base_url='http://test',
+        ) as client:
+            resp = await client.post(
+                '/sessions',
+                json={
+                    'model': 'claude-sonnet-4-6',
+                    'api_key': '',
+                },
+            )
+
+    assert resp.status_code == 400
+    assert 'API key' in resp.json().get('detail', '')
+
+
+@pytest.mark.asyncio
+async def test_create_session_with_api_key_succeeds(
+    mock_session_manager,
+) -> None:
+    """POST /sessions with a valid API key must succeed."""
+    mock_session_manager.create.return_value = 'abc123'
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(
+        transport=transport,
+        base_url='http://test',
+    ) as client:
+        resp = await client.post(
+            '/sessions',
+            json={
+                'model': 'claude-sonnet-4-6',
+                'api_key': 'sk-ant-real-key',
+            },
+        )
+
+    assert resp.status_code == 201
+
+
+@pytest.mark.asyncio
+async def test_chat_stream_error_yields_safe_message(
+    mock_session_manager,
+) -> None:
+    """SSE error events must not expose raw internal details."""
+    mock_session_manager.get.return_value = {'model': 'test'}
+
+    _INTERNAL_PATH = '/Users/secret/internal/path'
+
+    async def _raise_with_path(session_id, message):
+        raise ValueError(
+            f'Error accessing {_INTERNAL_PATH}/config.json'
+        )
+        yield  # make it an async generator
+
+    mock_session_manager.chat_stream = _raise_with_path
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(
+        transport=transport,
+        base_url='http://test',
+    ) as client:
+        resp = await client.post(
+            '/sessions/abc/chat',
+            json={'message': 'hello'},
+        )
+
+    body = resp.text
+    # The raw internal path must NOT appear in the SSE output
+    assert _INTERNAL_PATH not in body
+    # But 'error' event must still be present
+    assert 'error' in body
+
+
+@pytest.mark.asyncio
 async def test_chat_stream_error_yields_sse_error_event(
     mock_session_manager,
 ) -> None:
