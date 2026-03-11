@@ -138,6 +138,11 @@ class ContextRouter:
             context.set('routing_path', 'fallback')
             return self._fallback(history)
 
+        # Intentional broad catch: MemoryPipeline is an external
+        # protocol whose implementations may raise any exception.
+        # A failed pipeline conversion is non-fatal — we fall back
+        # to the safe user/system filter and log the full traceback
+        # for debugging.
         try:
             normalized = self._pipeline.normalize(
                 history, src_provider,

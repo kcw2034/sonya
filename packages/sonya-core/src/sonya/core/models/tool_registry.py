@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 from typing import Any
 
 from sonya.core.utils.validation import validate_input
 from sonya.core.models.tool import Tool, ToolResult
+
+_log = logging.getLogger('sonya.tool_registry')
 
 
 class ToolRegistry:
@@ -85,6 +88,10 @@ class ToolRegistry:
             )
 
         # Execute
+        # Intentional broad catch: tool.fn is user-supplied code that
+        # may raise any exception. We sandbox the failure into a
+        # ToolResult rather than propagating, so the agent loop can
+        # continue. The warning log preserves debuggability.
         try:
             result = await tool.fn(**arguments)
             return ToolResult(
@@ -94,6 +101,12 @@ class ToolRegistry:
                 output=str(result),
             )
         except Exception as e:
+            _log.warning(
+                'Tool %r raised %s: %s',
+                name,
+                type(e).__name__,
+                e,
+            )
             return ToolResult(
                 call_id=call_id,
                 name=name,
