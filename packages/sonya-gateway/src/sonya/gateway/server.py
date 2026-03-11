@@ -204,7 +204,11 @@ async def chat(
                     {'full_text': full_text}
                 ),
             }
-        except Exception as e:
+        except (KeyError, ValueError, RuntimeError, OSError) as e:
+            # KeyError: session not found
+            # ValueError/RuntimeError: LLM config or API errors
+            # OSError: network-level failures (ConnectionError,
+            #          TimeoutError, etc. are all OSError subclasses)
             yield {
                 'event': 'error',
                 'data': json.dumps(

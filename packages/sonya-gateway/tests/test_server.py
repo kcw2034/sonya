@@ -130,3 +130,35 @@ async def test_chat_session_not_found(
         )
 
     assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_chat_stream_error_yields_sse_error_event(
+    mock_session_manager,
+) -> None:
+    """When chat_stream raises a known error, an SSE error event is yielded."""
+    import json as _json
+
+    mock_session_manager.get.return_value = {'model': 'test'}
+
+    async def _raise_key_error(session_id, message):
+        raise KeyError('session gone')
+        yield  # make it an async generator
+
+    mock_session_manager.chat_stream = _raise_key_error
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(
+        transport=transport,
+        base_url='http://test',
+    ) as client:
+        resp = await client.post(
+            '/sessions/abc/chat',
+            json={'message': 'hello'},
+        )
+
+    # SSE streams always return 200; errors are in the event payload
+    assert resp.status_code == 200
+    # Find the 'error' event in the response body
+    body = resp.text
+    assert 'error' in body
