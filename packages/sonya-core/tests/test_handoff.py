@@ -222,3 +222,41 @@ async def test_handoff_without_router_unchanged() -> None:
 
     assert result.agent_name == 'agent_b'
     assert result.text == 'Done'
+
+
+def test_make_handoff_tool_with_prompt_instructions() -> None:
+    """_make_handoff_tool must not raise when instructions is a Prompt."""
+    from sonya.core.models.prompt import Prompt
+    from sonya.core.utils.handoff import _make_handoff_tool
+
+    prompt = Prompt(
+        role='You are a specialist.',
+        guidelines=('Use tools.',),
+    )
+    client_b = DummyClient([])
+    client_b.__class__.__name__ = 'AnthropicClient'
+
+    target = Agent(
+        name='specialist',
+        client=client_b,
+        instructions=prompt,
+    )
+
+    # Must not raise TypeError
+    tool = _make_handoff_tool(target)
+    assert 'specialist' in tool.name
+    assert isinstance(tool.description, str)
+
+
+def test_handoff_prefix_consistent() -> None:
+    """_HANDOFF_PREFIX must be identical in agent_runtime and handoff."""
+    from sonya.core.models.agent_runtime import (
+        _HANDOFF_PREFIX as rt_prefix,
+    )
+    from sonya.core.utils.handoff import (
+        _HANDOFF_PREFIX as h_prefix,
+    )
+    assert rt_prefix is h_prefix, (
+        '_HANDOFF_PREFIX should be the same object '
+        '(imported from handoff, not redeclared)'
+    )

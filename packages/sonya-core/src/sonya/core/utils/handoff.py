@@ -5,9 +5,30 @@ from __future__ import annotations
 from typing import Any
 
 from sonya.core.models.agent import Agent
+from sonya.core.models.prompt import Prompt
 from sonya.core.models.tool import Tool
 
 _HANDOFF_PREFIX = '__handoff_to_'
+
+
+def _instructions_preview(
+    instructions: str | Prompt | None,
+) -> str:
+    """Return a truncated plain-text preview of instructions.
+
+    Handles both ``str`` and :class:`Prompt` types safely.
+
+    Args:
+        instructions: Agent instructions (str, Prompt, or None).
+
+    Returns:
+        Up to 100 characters of rendered instructions text.
+    """
+    if not instructions:
+        return ''
+    if isinstance(instructions, Prompt):
+        return instructions.render()[:100]
+    return instructions[:100]
 
 
 def _make_handoff_tool(target: Agent) -> Tool:
@@ -31,7 +52,7 @@ def _make_handoff_tool(target: Agent) -> Tool:
         description=(
             f'Hand off the conversation to the '
             f'"{target.name}" agent. '
-            f'{target.instructions[:100] if target.instructions else ""}'
+            f'{_instructions_preview(target.instructions)}'
         ),
         fn=_handoff_fn,
         schema={

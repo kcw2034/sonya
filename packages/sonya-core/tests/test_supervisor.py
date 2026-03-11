@@ -148,3 +148,27 @@ async def test_worker_tools_injected() -> None:
 
     tool_names = [t.name for t in supervisor.tools]
     assert 'ask_helper' in tool_names
+
+
+def test_make_worker_tool_with_prompt_instructions() -> None:
+    """_make_worker_tool must not raise when instructions is a Prompt."""
+    from sonya.core.models.prompt import Prompt
+    from sonya.core.models.supervisor import _make_worker_tool
+
+    prompt = Prompt(
+        role='You are a coding assistant.',
+        constraints=('No fabrication.',),
+    )
+    client = DummyClient([])
+    client.__class__.__name__ = 'AnthropicClient'
+
+    worker = Agent(
+        name='coder',
+        client=client,
+        instructions=prompt,
+    )
+
+    # Must not raise TypeError
+    tool = _make_worker_tool(worker)
+    assert 'coder' in tool.name
+    assert isinstance(tool.description, str)

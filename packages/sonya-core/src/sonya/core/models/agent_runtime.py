@@ -9,8 +9,7 @@ from sonya.core.models.agent import Agent, AgentResult
 from sonya.core.exceptions.errors import AgentError
 from sonya.core.utils.tool_context import ToolContext
 from sonya.core.models.tool_registry import ToolRegistry
-
-_HANDOFF_PREFIX = '__handoff_to_'
+from sonya.core.utils.handoff import _HANDOFF_PREFIX
 
 
 class AgentRuntime:

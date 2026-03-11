@@ -9,6 +9,7 @@ from sonya.core.models.agent_runtime import AgentRuntime
 from sonya.core.models.agent import Agent, AgentResult
 from sonya.core.utils.tool_context import ToolContext
 from sonya.core.models.tool import Tool
+from sonya.core.utils.handoff import _instructions_preview
 
 
 @dataclass(slots=True)
@@ -57,7 +58,7 @@ def _make_worker_tool(
         description=(
             f'Delegate a task to the "{worker.name}" '
             f'agent. '
-            f'{worker.instructions[:100] if worker.instructions else ""}'
+            f'{_instructions_preview(worker.instructions)}'
         ),
         fn=_run_worker,
         schema={
