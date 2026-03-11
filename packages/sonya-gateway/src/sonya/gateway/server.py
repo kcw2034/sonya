@@ -2,6 +2,7 @@
 
 import json
 import os
+import time
 from typing import AsyncGenerator
 
 from fastapi import FastAPI, Request, Response
@@ -105,7 +106,11 @@ async def index(request: Request):
     """Serve the chat GUI."""
     return _templates.TemplateResponse(
         'chat.html',
-        {'request': request, 'models': _MODELS},
+        {
+            'request': request,
+            'models': _MODELS,
+            'version': int(time.time()),
+        },
     )
 
 
