@@ -6,7 +6,7 @@ import asyncio
 from typing import Any, Iterator, List, Optional
 
 from sonya.core.client.provider.base import BaseClient
-from sonya.core.parsers.adapter import _get_adapter
+from sonya.core.parsers.adapter import get_adapter
 
 from sonya.extension.schemas.types import (
     _check_langchain,
@@ -64,7 +64,7 @@ def _build_sonya_chat_model_class() -> type:
                 sonya_client=sonya_client,
                 **kwargs,
             )
-            self._adapter = _get_adapter(sonya_client)
+            self._adapter = get_adapter(sonya_client)
 
         @property
         def _llm_type(self) -> str:
