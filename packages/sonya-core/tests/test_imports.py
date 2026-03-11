@@ -30,3 +30,9 @@ def test_client_config_with_api_key():
 
     cfg = ClientConfig(model="m", api_key="sk-test")
     assert cfg.api_key == "sk-test"
+
+
+def test_prompt_exports():
+    from sonya.core import Prompt, Example
+    assert Prompt is not None
+    assert Example is not None

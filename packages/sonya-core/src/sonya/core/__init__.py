@@ -23,6 +23,7 @@ from sonya.core.models.tool_registry import ToolRegistry
 from sonya.core.utils.decorator import tool
 from sonya.core.models.agent import Agent, AgentResult
 from sonya.core.models.agent_runtime import AgentRuntime
+from sonya.core.models.prompt import Example, Prompt
 from sonya.core.models.runner import (
     Runner,
     RunnerCallback,
@@ -69,6 +70,9 @@ __all__ = [
     "Agent",
     "AgentResult",
     "AgentRuntime",
+    # Prompt
+    "Example",
+    "Prompt",
     # Orchestration
     "Runner",
     "RunnerCallback",
