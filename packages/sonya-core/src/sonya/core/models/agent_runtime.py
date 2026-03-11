@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncGenerator
 from typing import Any
 
 from sonya.core.parsers.adapter import get_adapter
@@ -244,6 +245,200 @@ class AgentRuntime:
                 history.append(tool_msg)
 
             # Callback: iteration end
+            if self._callbacks:
+                for cb in self._callbacks:
+                    if hasattr(cb, 'on_iteration_end'):
+                        await cb.on_iteration_end(
+                            agent.name, _iteration,
+                        )
+
+        raise AgentError(
+            agent.name,
+            f'Exceeded max_iterations '
+            f'({agent.max_iterations})',
+        )
+
+    async def run_stream(
+        self,
+        messages: list[dict[str, Any]],
+        prompt_context: dict[str, str] | None = None,
+    ) -> AsyncGenerator[str | AgentResult, None]:
+        """Execute the agent loop, streaming text and result.
+
+        Yields text from each LLM iteration as it becomes
+        available, then yields the final :class:`AgentResult`
+        as the last item.
+
+        This enables progressive display of agent output
+        across multi-iteration loops (e.g., tool-calling
+        agents) without waiting for the full loop to finish.
+
+        Args:
+            messages: Initial conversation messages.
+            prompt_context: Template variables for
+                :meth:`Prompt.render` when *instructions*
+                is a :class:`Prompt`.
+
+        Yields:
+            str: Text from each LLM response (non-empty only).
+            AgentResult: Final result as the last yielded item.
+
+        Raises:
+            AgentError: If the loop exceeds max_iterations.
+        """
+        agent = self._agent
+        adapter = self._adapter
+        registry = self._registry
+        history = list(messages)
+
+        instructions = agent.instructions
+        if isinstance(instructions, Prompt):
+            instructions = instructions.render(
+                **(prompt_context or {})
+            )
+
+        tools = registry.tools
+        schemas: list[dict[str, Any]] | None = None
+        if tools:
+            provider_name = type(agent.client).__name__
+            provider = _PROVIDER_MAP.get(
+                provider_name, 'openai'
+            )
+            schemas = registry.schemas(provider)
+
+        gen_kwargs = adapter.format_generate_kwargs(
+            instructions, schemas
+        )
+
+        system_message = gen_kwargs.pop(
+            '_system_message', None
+        )
+        if system_message:
+            history = [
+                m for m in history
+                if m.get('role') != 'system'
+            ]
+            history = [
+                {'role': 'system', 'content': system_message}
+            ] + history
+
+        for _iteration in range(agent.max_iterations):
+            if self._callbacks:
+                for cb in self._callbacks:
+                    if hasattr(cb, 'on_iteration_start'):
+                        await cb.on_iteration_start(
+                            agent.name, _iteration,
+                        )
+
+            response = await agent.client.generate(
+                adapter.format_messages(history),
+                **gen_kwargs,
+            )
+            parsed = adapter.parse(response)
+
+            # Yield text chunk if present
+            if parsed.text:
+                yield parsed.text
+
+            # Check for handoff
+            for tc in parsed.tool_calls:
+                if tc.name.startswith(_HANDOFF_PREFIX):
+                    target_name = tc.name[
+                        len(_HANDOFF_PREFIX):
+                    ]
+                    if self._callbacks:
+                        for cb in self._callbacks:
+                            if hasattr(cb, 'on_handoff'):
+                                await cb.on_handoff(
+                                    agent.name,
+                                    target_name,
+                                )
+                    history.append(
+                        adapter.format_assistant_message(
+                            response
+                        )
+                    )
+                    yield AgentResult(
+                        agent_name=agent.name,
+                        text=parsed.text,
+                        history=history,
+                        handoff_to=target_name,
+                    )
+                    return
+
+            # No tool calls — final response
+            if not parsed.tool_calls:
+                history.append(
+                    adapter.format_assistant_message(
+                        response
+                    )
+                )
+                if self._callbacks:
+                    for cb in self._callbacks:
+                        if hasattr(cb, 'on_iteration_end'):
+                            await cb.on_iteration_end(
+                                agent.name, _iteration,
+                            )
+                yield AgentResult(
+                    agent_name=agent.name,
+                    text=parsed.text,
+                    history=history,
+                )
+                return
+
+            # Execute tool calls
+            history.append(
+                adapter.format_assistant_message(response)
+            )
+            calls = [
+                (tc.name, tc.id, tc.arguments)
+                for tc in parsed.tool_calls
+            ]
+
+            if self._callbacks:
+                for tc in parsed.tool_calls:
+                    for cb in self._callbacks:
+                        if hasattr(cb, 'on_tool_start'):
+                            await cb.on_tool_start(
+                                agent.name,
+                                tc.name,
+                                tc.arguments,
+                            )
+
+            results = await registry.execute_many(calls)
+
+            if self._callbacks:
+                for r in results:
+                    for cb in self._callbacks:
+                        if hasattr(cb, 'on_tool_end'):
+                            await cb.on_tool_end(
+                                agent.name,
+                                r.name,
+                                {},
+                                r.output,
+                                r.error,
+                                r.success,
+                            )
+
+            result_dicts = [
+                {
+                    'call_id': r.call_id,
+                    'name': r.name,
+                    'success': r.success,
+                    'output': r.output,
+                    'error': r.error,
+                }
+                for r in results
+            ]
+
+            tool_msg = adapter.format_tool_results_message(
+                result_dicts
+            )
+            if isinstance(tool_msg, list):
+                history.extend(tool_msg)
+            else:
+                history.append(tool_msg)
+
             if self._callbacks:
                 for cb in self._callbacks:
                     if hasattr(cb, 'on_iteration_end'):
