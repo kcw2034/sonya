@@ -235,10 +235,12 @@ class OpenAIAdapter:
     ) -> dict[str, Any]:
         """Build OpenAI-specific generate kwargs.
 
-        System instruction is prepended as a system message
-        (handled by the runtime via history).
+        Stores instructions under ``_system_message`` for
+        the runtime to prepend as a system message.
         """
         kwargs: dict[str, Any] = {}
+        if instructions:
+            kwargs['_system_message'] = instructions
         if tool_schemas:
             kwargs['tools'] = tool_schemas
         return kwargs

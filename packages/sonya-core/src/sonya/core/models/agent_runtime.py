@@ -107,6 +107,15 @@ class AgentRuntime:
             instructions, schemas
         )
 
+        # Extract system message for OpenAI-style injection
+        system_message = gen_kwargs.pop(
+            '_system_message', None
+        )
+        if system_message:
+            history = [
+                {'role': 'system', 'content': system_message}
+            ] + history
+
         for _iteration in range(agent.max_iterations):
             # Callback: iteration start
             if self._callbacks:
