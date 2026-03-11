@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from sonya.core.client.provider.base import BaseClient
+from sonya.core.models.prompt import Prompt
 from sonya.core.models.tool import Tool
 from sonya.core.schemas.types import AgentCallback
 
@@ -17,7 +18,7 @@ class Agent:
     Args:
         name: Unique agent identifier.
         client: LLM client to use for generation.
-        instructions: System prompt for the agent.
+        instructions: System prompt (plain str or Prompt).
         tools: List of tools available to the agent.
         handoffs: List of agents this agent can hand off to.
         max_iterations: Maximum LLM <-> tool loop iterations.
@@ -26,7 +27,7 @@ class Agent:
 
     name: str
     client: BaseClient
-    instructions: str = ''
+    instructions: str | Prompt = ''
     tools: list[Tool] = field(default_factory=list)
     handoffs: list[Agent] = field(default_factory=list)
     max_iterations: int = 10

@@ -124,3 +124,31 @@ def test_prompt_render_multiple_examples():
     assert 'Assistant: A1' in result
     assert 'User: Q2' in result
     assert 'Assistant: A2' in result
+
+
+def test_agent_accepts_str_instructions():
+    from unittest.mock import MagicMock
+    from sonya.core.models.agent import Agent
+
+    client = MagicMock()
+    agent = Agent(
+        name='test',
+        client=client,
+        instructions='You are helpful.',
+    )
+    assert agent.instructions == 'You are helpful.'
+
+
+def test_agent_accepts_prompt_instructions():
+    from unittest.mock import MagicMock
+    from sonya.core.models.agent import Agent
+
+    client = MagicMock()
+    prompt = Prompt(role='You are a bot.')
+    agent = Agent(
+        name='test',
+        client=client,
+        instructions=prompt,
+    )
+    assert isinstance(agent.instructions, Prompt)
+    assert agent.instructions.render() == 'You are a bot.'
