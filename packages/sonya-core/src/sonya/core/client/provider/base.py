@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Any, AsyncIterator
 
 from sonya.core.schemas.types import ClientConfig, Interceptor
@@ -78,6 +78,7 @@ class BaseClient(ABC):
 
     # --- subclass hooks (internal) ---
 
+    @abstractmethod
     async def _provider_generate(
         self,
         messages: list[dict[str, Any]],
@@ -92,10 +93,8 @@ class BaseClient(ABC):
         Returns:
             The provider's native response object.
         """
-        raise NotImplementedError(
-            'Subclasses must implement _provider_generate()'
-        )
 
+    @abstractmethod
     async def _provider_generate_stream(
         self,
         messages: list[dict[str, Any]],
@@ -110,11 +109,7 @@ class BaseClient(ABC):
         Yields:
             The provider's native response chunks.
         """
-        raise NotImplementedError(
-            'Subclasses must implement'
-            ' _provider_generate_stream()'
-        )
-        # yield required for AsyncIterator type signature
+        # yield required to make this an async generator.
         yield  # type: ignore[misc]  # pragma: no cover
 
     # --- interceptor chain (internal) ---

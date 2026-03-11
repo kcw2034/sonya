@@ -87,8 +87,13 @@ class ResponseAdapter(Protocol):
 
     def format_tool_results_message(
         self, results: list[dict[str, Any]]
-    ) -> dict[str, Any]:
-        """Format tool results as a history message."""
+    ) -> dict[str, Any] | list[dict[str, Any]]:
+        """Format tool results as a history message.
+
+        Anthropic returns a single dict (user message with
+        tool_result blocks). OpenAI returns a list of dicts
+        (one tool-role message per result).
+        """
         ...
 
 

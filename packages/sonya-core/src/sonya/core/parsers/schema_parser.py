@@ -109,7 +109,7 @@ def _safe_get_hints(fn: Any) -> dict[str, Any]:
     """
     try:
         return get_type_hints(fn)
-    except Exception:
+    except (NameError, AttributeError, TypeError):
         # Build a namespace that includes the function's globals
         globalns = getattr(fn, '__globals__', {})
         raw = getattr(fn, '__annotations__', {})
@@ -118,7 +118,7 @@ def _safe_get_hints(fn: Any) -> dict[str, Any]:
             if isinstance(hint, str):
                 try:
                     resolved[name] = eval(hint, globalns)  # noqa: S307
-                except Exception:
+                except (NameError, SyntaxError):
                     resolved[name] = str
             else:
                 resolved[name] = hint

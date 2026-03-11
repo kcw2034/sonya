@@ -10,6 +10,15 @@ from sonya.core.exceptions.errors import AgentError
 from sonya.core.utils.tool_context import ToolContext
 from sonya.core.models.tool_registry import ToolRegistry
 from sonya.core.utils.handoff import _HANDOFF_PREFIX
+from sonya.core.models.prompt import Prompt
+
+# Maps provider client class names to schema format names.
+# Defined at module level to avoid recreation on every run().
+_PROVIDER_MAP: dict[str, str] = {
+    'AnthropicClient': 'anthropic',
+    'OpenAIClient': 'openai',
+    'GeminiClient': 'gemini',
+}
 
 
 class AgentRuntime:
@@ -79,8 +88,6 @@ class AgentRuntime:
         history = list(messages)
 
         # Resolve instructions
-        from sonya.core.models.prompt import Prompt
-
         instructions = agent.instructions
         if isinstance(instructions, Prompt):
             instructions = instructions.render(
@@ -92,12 +99,7 @@ class AgentRuntime:
         schemas: list[dict[str, Any]] | None = None
         if tools:
             provider_name = type(agent.client).__name__
-            _provider_map = {
-                'AnthropicClient': 'anthropic',
-                'OpenAIClient': 'openai',
-                'GeminiClient': 'gemini',
-            }
-            provider = _provider_map.get(
+            provider = _PROVIDER_MAP.get(
                 provider_name, 'openai'
             )
             schemas = registry.schemas(provider)

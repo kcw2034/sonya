@@ -68,3 +68,16 @@ async def test_async_context_manager():
     async with DummyClient(ClientConfig(model="test")) as client:
         result = await client.generate([{"role": "user", "content": "hi"}])
         assert "echo" in result
+
+
+def test_abstract_method_enforced_on_subclass() -> None:
+    """BaseClient subclass that omits _provider_generate must raise
+    TypeError at instantiation — not silently succeed and fail later."""
+    import pytest
+
+    class IncompleteClient(BaseClient):
+        """Subclass that intentionally omits _provider_generate."""
+        pass
+
+    with pytest.raises(TypeError):
+        IncompleteClient(ClientConfig(model='test'))

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import time
+from contextvars import ContextVar
 from typing import Any
 
 from sonya.core.schemas.events import (
@@ -18,6 +19,11 @@ _logger = logging.getLogger('sonya.client')
 class LoggingInterceptor:
     """Interceptor that logs LLM request/response details.
 
+    Per-request state (start time, model name) is stored in
+    :class:`contextvars.ContextVar` instances so that concurrent
+    asyncio tasks sharing the same interceptor each maintain
+    independent state.
+
     Args:
         level: Logging level (default: DEBUG).
         log_json: If True, emit structured JSON log lines.
@@ -30,8 +36,15 @@ class LoggingInterceptor:
     ) -> None:
         self._level = level
         self._log_json = log_json
-        self._request_start: float = 0.0
-        self._model: str = ''
+        # Use unique names (keyed on object id) so multiple
+        # interceptor instances each have their own ContextVars.
+        _uid = id(self)
+        self._request_start: ContextVar[float] = ContextVar(
+            f'sonya_log_start_{_uid}', default=0.0
+        )
+        self._model: ContextVar[str] = ContextVar(
+            f'sonya_log_model_{_uid}', default=''
+        )
 
     async def before_request(
         self,
@@ -39,11 +52,12 @@ class LoggingInterceptor:
         kwargs: dict[str, Any],
     ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         """Record request start time and emit LLMRequestEvent."""
-        self._request_start = time.monotonic()
-        self._model = kwargs.get('model', '')
+        self._request_start.set(time.monotonic())
+        model = kwargs.get('model', '')
+        self._model.set(model)
 
         event = LLMRequestEvent(
-            model=self._model,
+            model=model,
             message_count=len(messages),
             kwargs_keys=tuple(kwargs.keys()),
         )
@@ -54,10 +68,11 @@ class LoggingInterceptor:
         self, response: Any
     ) -> Any:
         """Calculate latency, extract usage, and emit LLMResponseEvent."""
+        request_start = self._request_start.get()
+        model = self._model.get()
         latency_ms = (
-            (time.monotonic() - self._request_start)
-            * 1000
-            if self._request_start
+            (time.monotonic() - request_start) * 1000
+            if request_start
             else 0.0
         )
 
@@ -69,7 +84,7 @@ class LoggingInterceptor:
         )
 
         event = LLMResponseEvent(
-            model=self._model,
+            model=model,
             stop_reason=stop_reason,
             latency_ms=round(latency_ms, 2),
             input_tokens=input_tokens,

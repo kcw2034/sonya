@@ -451,3 +451,62 @@ class TestDebugCallback:
             'Iteration End' in r.message
             for r in caplog.records
         )
+
+
+class TestLoggingInterceptorConcurrency:
+    """Verify LoggingInterceptor is safe under concurrent async tasks."""
+
+    @pytest.mark.asyncio
+    async def test_concurrent_requests_independent_latency(
+        self,
+    ) -> None:
+        """When two asyncio tasks share one LoggingInterceptor, each
+        should compute its own latency — not be corrupted by the other.
+
+        Scenario:
+          - long_request: starts at t=0, ends at t=100ms
+          - short_request: starts at t=50ms, ends at t=100ms
+
+        With instance-variable bug: long_request uses short_request's
+        start time (t=50ms) → reports ~50ms instead of ~100ms.
+        With ContextVar fix: long_request reports ~100ms correctly.
+        """
+        import asyncio
+        import time
+
+        interceptor = LoggingInterceptor()
+        latency_records: list[float] = []
+
+        orig_emit = interceptor._emit
+
+        def _capture(event: Any) -> None:
+            if hasattr(event, 'latency_ms'):
+                latency_records.append(event.latency_ms)
+            orig_emit(event)
+
+        interceptor._emit = _capture  # type: ignore[method-assign]
+
+        async def long_request() -> None:
+            await interceptor.before_request(
+                [], {'model': 'long'}
+            )
+            await asyncio.sleep(0.10)  # 100 ms
+            await interceptor.after_response({})
+
+        async def short_request() -> None:
+            await asyncio.sleep(0.05)  # start 50 ms later
+            await interceptor.before_request(
+                [], {'model': 'short'}
+            )
+            await asyncio.sleep(0.05)  # 50 ms
+            await interceptor.after_response({})
+
+        await asyncio.gather(long_request(), short_request())
+
+        assert len(latency_records) == 2
+        # long_request should report ≥ 80 ms
+        assert max(latency_records) >= 80, (
+            f'Long request latency too low: {latency_records}. '
+            'Likely _request_start was overwritten by a concurrent '
+            'before_request call.'
+        )
