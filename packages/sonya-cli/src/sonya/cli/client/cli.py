@@ -12,6 +12,10 @@ from sonya.cli.utils.auth import (
 )
 
 app = App(name='sonya', help='Sonya Agent Framework CLI')
+gateway_app = App(
+    name='gateway', help='Manage the Sonya gateway server'
+)
+app.command(gateway_app)
 
 
 @app.default
@@ -21,6 +25,24 @@ def chat() -> None:
     from sonya.cli.client.app import SonyaTUI
     tui_app = SonyaTUI()
     tui_app.run()
+
+
+@gateway_app.command(name='start')
+def gateway_start(
+    host: str = '127.0.0.1',
+    port: int = 8340,
+) -> None:
+    """Start the gateway server standalone.
+
+    Args:
+        host: Bind address.
+        port: Bind port.
+    """
+    from sonya.gateway import run_server
+    print(
+        f'Starting Sonya Gateway on {host}:{port}'
+    )
+    run_server(host=host, port=port)
 
 
 @app.command(name='auth')
