@@ -38,6 +38,7 @@ pip-wheel-metadata/
 # Local agent/tooling state
 .claude/
 .opencode/
+.agent/
 opencode.json
 
 # Local instruction docs
@@ -45,3 +46,4 @@ CLAUDE.md
 
 # Local research docs
 .docs/
+docs/
