@@ -123,6 +123,22 @@ class SessionManager:
             session['system_prompt'] = system_prompt
         return True
 
+    def list_all(self) -> list[dict[str, str | int]]:
+        """Return summary of all sessions.
+
+        Returns:
+            List of session info dicts.
+        """
+        return [
+            {
+                'session_id': sid,
+                'model': data['model'],
+                'system_prompt': data['system_prompt'],
+                'message_count': len(data['history']),
+            }
+            for sid, data in self._sessions.items()
+        ]
+
     async def chat_stream(
         self, session_id: str, message: str
     ) -> Any:

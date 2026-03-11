@@ -104,6 +104,12 @@ async def create_session(
     )
 
 
+@app.get('/sessions')
+async def list_sessions() -> list[dict]:
+    """List all active sessions."""
+    return session_manager.list_all()
+
+
 @app.delete('/sessions/{session_id}', status_code=204)
 async def delete_session(session_id: str) -> Response:
     """Delete a session."""
