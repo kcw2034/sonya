@@ -146,3 +146,92 @@ class DefaultMemoryPipeline:
             )
             for msg in history
         ]
+
+    # ── reconstruct ─────────────────────────────────────────
+
+    def reconstruct(
+        self,
+        messages: list[NormalizedMessage],
+        target_provider: str,
+    ) -> list[dict[str, Any]]:
+        """Reconstruct normalized messages to provider-native form.
+
+        Args:
+            messages: List of NormalizedMessage.
+            target_provider: Target provider name
+                ('anthropic', 'openai', 'gemini').
+
+        Returns:
+            Provider-native message list.
+        """
+        reconstructor = {
+            'anthropic': self._reconstruct_anthropic,
+            'openai': self._reconstruct_openai,
+            'gemini': self._reconstruct_gemini,
+        }.get(target_provider, self._reconstruct_generic)
+
+        return reconstructor(messages)
+
+    def _reconstruct_anthropic(
+        self,
+        messages: list[NormalizedMessage],
+    ) -> list[dict[str, Any]]:
+        """Reconstruct to Anthropic message format.
+
+        Content is wrapped in a text content block list.
+        """
+        return [
+            {
+                'role': msg.role,
+                'content': [
+                    {'type': 'text', 'text': msg.content}
+                ],
+            }
+            for msg in messages
+        ]
+
+    def _reconstruct_openai(
+        self,
+        messages: list[NormalizedMessage],
+    ) -> list[dict[str, Any]]:
+        """Reconstruct to OpenAI message format.
+
+        Content is a plain string.
+        """
+        return [
+            {'role': msg.role, 'content': msg.content}
+            for msg in messages
+        ]
+
+    def _reconstruct_gemini(
+        self,
+        messages: list[NormalizedMessage],
+    ) -> list[dict[str, Any]]:
+        """Reconstruct to Gemini message format.
+
+        Uses parts list. Role 'assistant' mapped to 'model',
+        'system' mapped to 'user'.
+        """
+        result: list[dict[str, Any]] = []
+        for msg in messages:
+            role = msg.role
+            if role == 'assistant':
+                role = 'model'
+            elif role == 'system':
+                role = 'user'
+
+            result.append({
+                'role': role,
+                'parts': [{'text': msg.content}],
+            })
+        return result
+
+    def _reconstruct_generic(
+        self,
+        messages: list[NormalizedMessage],
+    ) -> list[dict[str, Any]]:
+        """Fallback reconstructor for unknown providers."""
+        return [
+            {'role': msg.role, 'content': msg.content}
+            for msg in messages
+        ]
