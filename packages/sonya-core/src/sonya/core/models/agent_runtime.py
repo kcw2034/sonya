@@ -56,14 +56,20 @@ class AgentRuntime:
     async def run(
         self,
         messages: list[dict[str, Any]],
+        prompt_context: dict[str, str] | None = None,
     ) -> AgentResult:
         """Execute the agent loop starting from *messages*.
 
         Args:
-            messages: Initial conversation messages (user turn, etc).
+            messages: Initial conversation messages
+                (user turn, etc).
+            prompt_context: Template variables passed to
+                :meth:`Prompt.render` when *instructions*
+                is a :class:`Prompt`.
 
         Returns:
-            :class:`AgentResult` with the final text and history.
+            :class:`AgentResult` with the final text and
+            history.
 
         Raises:
             AgentError: If the loop exceeds max_iterations.
@@ -72,6 +78,15 @@ class AgentRuntime:
         adapter = self._adapter
         registry = self._registry
         history = list(messages)
+
+        # Resolve instructions
+        from sonya.core.models.prompt import Prompt
+
+        instructions = agent.instructions
+        if isinstance(instructions, Prompt):
+            instructions = instructions.render(
+                **(prompt_context or {})
+            )
 
         # Build generate kwargs via adapter
         tools = registry.tools
@@ -89,7 +104,7 @@ class AgentRuntime:
             schemas = registry.schemas(provider)
 
         gen_kwargs = adapter.format_generate_kwargs(
-            agent.instructions, schemas
+            instructions, schemas
         )
 
         for _iteration in range(agent.max_iterations):
