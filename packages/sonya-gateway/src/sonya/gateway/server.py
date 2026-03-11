@@ -36,13 +36,41 @@ _templates = Jinja2Templates(
 )
 
 _MODELS = [
-    {'id': 'claude-sonnet-4-6', 'name': 'Claude 4.6 Sonnet'},
-    {'id': 'claude-haiku-4-5-20251001', 'name': 'Claude 4.5 Haiku'},
-    {'id': 'gpt-4o', 'name': 'GPT-4o'},
-    {'id': 'gpt-4.1', 'name': 'GPT-4.1'},
-    {'id': 'gpt-4.1-mini', 'name': 'GPT-4.1 mini'},
-    {'id': 'gemini-3-flash-preview', 'name': 'Gemini 3 Flash'},
-    {'id': 'gemini-3.1-pro-preview', 'name': 'Gemini 3.1 Pro'},
+    {
+        'id': 'claude-sonnet-4-6',
+        'name': 'Claude 4.6 Sonnet',
+        'short': 'Sonnet',
+    },
+    {
+        'id': 'claude-haiku-4-5-20251001',
+        'name': 'Claude 4.5 Haiku',
+        'short': 'Haiku',
+    },
+    {
+        'id': 'gpt-4o',
+        'name': 'GPT-4o',
+        'short': 'GPT-4o',
+    },
+    {
+        'id': 'gpt-4.1',
+        'name': 'GPT-4.1',
+        'short': 'GPT-4.1',
+    },
+    {
+        'id': 'gpt-4.1-mini',
+        'name': 'GPT-4.1 mini',
+        'short': '4.1 mini',
+    },
+    {
+        'id': 'gemini-3-flash-preview',
+        'name': 'Gemini 3 Flash',
+        'short': 'Flash',
+    },
+    {
+        'id': 'gemini-3.1-pro-preview',
+        'name': 'Gemini 3.1 Pro',
+        'short': 'Pro',
+    },
 ]
 
 _MODEL_KEY_MAP = {
