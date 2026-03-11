@@ -15,6 +15,42 @@ from typing import Any, Protocol, runtime_checkable
 Message = dict[str, Any]
 
 
+# ── Memory store protocol ────────────────────────────────────────────────
+
+from sonya.core.schemas.memory import NormalizedMessage
+
+
+@runtime_checkable
+class MemoryStore(Protocol):
+    """Store and retrieve normalized messages by session.
+
+    Args:
+        session_id: Unique session identifier.
+        messages: List of NormalizedMessage to save.
+        last_n: Optional limit to load only the last N messages.
+    """
+
+    def save(
+        self,
+        session_id: str,
+        messages: list[NormalizedMessage],
+    ) -> None:
+        """Save normalized messages to a session."""
+        ...
+
+    def load(
+        self,
+        session_id: str,
+        last_n: int | None = None,
+    ) -> list[NormalizedMessage]:
+        """Load normalized messages from a session."""
+        ...
+
+    def clear(self, session_id: str) -> None:
+        """Clear all messages in a session."""
+        ...
+
+
 # ── Pipeline stage protocol ──────────────────────────────────────────────
 
 @runtime_checkable
