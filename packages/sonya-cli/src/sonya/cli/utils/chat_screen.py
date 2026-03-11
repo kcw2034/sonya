@@ -1,7 +1,9 @@
 """ChatScreen - main TUI screen for Sonya CLI."""
 
+import json
 import os
 
+import httpx
 from rich.text import Text
 
 from textual import work
@@ -272,7 +274,15 @@ class ChatScreen(Screen[None]):
 
             self._last_response = buffer
 
-        except Exception as e:
+        except (
+            RuntimeError,
+            httpx.HTTPStatusError,
+            httpx.ConnectError,
+            json.JSONDecodeError,
+        ) as e:
+            # RuntimeError: no active session
+            # httpx errors: network or HTTP-level failures
+            # JSONDecodeError: malformed SSE payload
             chat_panel.hide_thinking()
             chat_panel.append_message(
                 'system', f'ERROR: {str(e)}'
