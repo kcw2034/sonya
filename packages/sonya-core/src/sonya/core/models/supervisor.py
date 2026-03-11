@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -92,14 +93,17 @@ class SupervisorRuntime:
         self._config = config
         self._context = config.context or ToolContext()
 
-        # Inject worker tools into supervisor
+        # Build worker tools and inject them into a shallow copy of
+        # the supervisor agent, leaving the original agent untouched.
+        # This prevents tool accumulation when the same agent instance
+        # is reused across multiple SupervisorRuntime objects.
         worker_tools = [
             _make_worker_tool(w, self._context)
             for w in config.workers
         ]
-        supervisor = config.supervisor
-        supervisor.tools = (
-            list(supervisor.tools) + worker_tools
+        self._supervisor = dataclasses.replace(
+            config.supervisor,
+            tools=list(config.supervisor.tools) + worker_tools,
         )
 
     async def run(
@@ -115,7 +119,7 @@ class SupervisorRuntime:
             :class:`AgentResult` from the supervisor.
         """
         runtime = AgentRuntime(
-            self._config.supervisor,
+            self._supervisor,
             context=self._context,
         )
         return await runtime.run(messages)

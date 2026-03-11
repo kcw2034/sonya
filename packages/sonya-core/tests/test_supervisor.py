@@ -144,10 +144,52 @@ async def test_worker_tools_injected() -> None:
         supervisor=supervisor,
         workers=[worker],
     )
+    runtime = SupervisorRuntime(config)
+
+    # Worker tools live on the internal copy, not the original agent
+    tool_names = [t.name for t in runtime._supervisor.tools]
+    assert 'ask_helper' in tool_names
+
+
+@pytest.mark.asyncio
+async def test_supervisor_does_not_mutate_original_agent() -> None:
+    """Creating SupervisorRuntime must not alter the original supervisor agent."""
+    worker_client = DummyClient([_anthropic_text('ok')])
+    worker_client.__class__.__name__ = 'AnthropicClient'
+    worker = Agent(name='helper', client=worker_client)
+
+    supervisor_client = DummyClient([_anthropic_text('done')])
+    supervisor_client.__class__.__name__ = 'AnthropicClient'
+    supervisor = Agent(name='boss', client=supervisor_client)
+
+    original_tool_count = len(supervisor.tools)
+
+    config = SupervisorConfig(supervisor=supervisor, workers=[worker])
     SupervisorRuntime(config)
 
-    tool_names = [t.name for t in supervisor.tools]
-    assert 'ask_helper' in tool_names
+    # Original agent must be untouched
+    assert len(supervisor.tools) == original_tool_count
+
+
+@pytest.mark.asyncio
+async def test_supervisor_no_tool_accumulation_on_reuse() -> None:
+    """Worker tools must not accumulate when the same agent is reused."""
+    worker_client = DummyClient([])
+    worker_client.__class__.__name__ = 'AnthropicClient'
+    worker = Agent(name='helper', client=worker_client)
+
+    supervisor_client = DummyClient([])
+    supervisor_client.__class__.__name__ = 'AnthropicClient'
+    supervisor = Agent(name='boss', client=supervisor_client)
+
+    config = SupervisorConfig(supervisor=supervisor, workers=[worker])
+
+    # Create two runtimes from the same config/agent
+    SupervisorRuntime(config)
+    SupervisorRuntime(config)
+
+    # Original agent tools must still be empty
+    assert len(supervisor.tools) == 0
 
 
 def test_make_worker_tool_with_prompt_instructions() -> None:
