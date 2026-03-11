@@ -102,27 +102,34 @@ def _dataclass_to_schema(cls: type) -> dict[str, Any]:
 
 
 def _safe_get_hints(fn: Any) -> dict[str, Any]:
-    """Get type hints, falling back to manual resolution on error.
+    """Get type hints without eval, falling back safely on error.
 
-    Handles locally-defined types (e.g. dataclasses inside functions)
-    by including the function's global namespace for evaluation.
+    Resolution order:
+    1. ``typing.get_type_hints(fn)`` — standard resolution.
+    2. Retry with the function's ``__globals__`` passed explicitly,
+       which helps when forward-reference strings live outside the
+       default lookup namespace.
+    3. Final fallback: return raw ``__annotations__``, mapping any
+       unresolvable string annotations to ``str`` rather than calling
+       ``eval`` (which would be a security risk).
     """
     try:
         return get_type_hints(fn)
     except (NameError, AttributeError, TypeError):
-        # Build a namespace that includes the function's globals
-        globalns = getattr(fn, '__globals__', {})
-        raw = getattr(fn, '__annotations__', {})
-        resolved: dict[str, Any] = {}
-        for name, hint in raw.items():
-            if isinstance(hint, str):
-                try:
-                    resolved[name] = eval(hint, globalns)  # noqa: S307
-                except (NameError, SyntaxError):
-                    resolved[name] = str
-            else:
-                resolved[name] = hint
-        return resolved
+        pass
+
+    globalns = getattr(fn, '__globals__', {})
+    try:
+        return get_type_hints(fn, globalns=globalns)
+    except (NameError, AttributeError, TypeError):
+        pass
+
+    # Safe fallback: do NOT eval string annotations.
+    raw = getattr(fn, '__annotations__', {})
+    resolved: dict[str, Any] = {}
+    for name, hint in raw.items():
+        resolved[name] = hint if not isinstance(hint, str) else str
+    return resolved
 
 
 def function_to_schema(fn: Any) -> dict[str, Any]:

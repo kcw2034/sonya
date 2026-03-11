@@ -107,3 +107,50 @@ def test_bool_and_float() -> None:
     schema = function_to_schema(fn)
     assert schema['properties']['flag'] == {'type': 'boolean'}
     assert schema['properties']['value'] == {'type': 'number'}
+
+
+def test_safe_get_hints_no_eval_on_unresolvable() -> None:
+    """Unresolvable string annotations must fall back to str, not eval."""
+    from sonya.core.parsers.schema_parser import _safe_get_hints
+
+    # Simulate a function whose annotation references a name that
+    # does not exist in any reachable namespace.
+    def fn(x: int) -> None:  # type: ignore[misc]
+        ...
+
+    # Patch a raw string annotation that cannot be resolved.
+    fn.__annotations__ = {'x': 'NonExistentType12345'}
+    # __globals__ should NOT contain NonExistentType12345
+    assert 'NonExistentType12345' not in fn.__globals__  # type: ignore[attr-defined]
+
+    hints = _safe_get_hints(fn)
+    # Must not raise; must map the unresolvable hint to str safely.
+    assert hints['x'] is str
+
+
+def test_safe_get_hints_resolvable_forward_ref() -> None:
+    """A string annotation that IS resolvable should be resolved correctly."""
+    from sonya.core.parsers.schema_parser import _safe_get_hints
+
+    def fn(a: int) -> None:
+        ...
+
+    # 'int' is always resolvable via builtins
+    fn.__annotations__ = {'a': 'int'}
+    hints = _safe_get_hints(fn)
+    assert hints['a'] is int
+
+
+def test_schema_parser_contains_no_eval_call() -> None:
+    """Ensure the schema_parser source no longer contains an eval() call."""
+    import importlib.util
+    import inspect
+
+    spec = importlib.util.find_spec('sonya.core.parsers.schema_parser')
+    assert spec is not None
+    assert spec.origin is not None
+    source = open(spec.origin).read()
+    # The word 'eval(' must not appear anywhere in the module.
+    assert 'eval(' not in source, (
+        'schema_parser.py still contains eval() — security risk'
+    )
