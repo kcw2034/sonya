@@ -235,3 +235,50 @@ class DefaultMemoryPipeline:
             {'role': msg.role, 'content': msg.content}
             for msg in messages
         ]
+
+    # ── session convenience methods ─────────────────────────────────
+
+    def save_session(
+        self,
+        session_id: str,
+        history: list[dict[str, Any]],
+        source_provider: str,
+    ) -> None:
+        """Normalize history and save to store.
+
+        Args:
+            session_id: Unique session identifier.
+            history: Provider-native message list.
+            source_provider: Provider name of the history.
+
+        Raises:
+            ValueError: If no store is configured.
+        """
+        if self._store is None:
+            raise ValueError('No store configured')
+        normalized = self.normalize(history, source_provider)
+        self._store.save(session_id, normalized)
+
+    def load_session(
+        self,
+        session_id: str,
+        target_provider: str,
+        last_n: int | None = None,
+    ) -> list[dict[str, Any]]:
+        """Load from store and reconstruct for target provider.
+
+        Args:
+            session_id: Unique session identifier.
+            target_provider: Provider name to reconstruct for.
+            last_n: If set, load only the last N messages.
+
+        Returns:
+            Provider-native message list.
+
+        Raises:
+            ValueError: If no store is configured.
+        """
+        if self._store is None:
+            raise ValueError('No store configured')
+        normalized = self._store.load(session_id, last_n)
+        return self.reconstruct(normalized, target_provider)
