@@ -9,6 +9,7 @@ from sonya.core.parsers.adapter import (
     ParsedToolCall,
     ResponseAdapter,
     register_adapter,
+    get_adapter,
     _get_adapter,
 )
 
@@ -21,5 +22,5 @@ __all__ = [
     'ParsedToolCall',
     'ResponseAdapter',
     'register_adapter',
-    '_get_adapter',
+    'get_adapter',
 ]

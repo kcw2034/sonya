@@ -41,7 +41,7 @@ from sonya.core.schemas.memory import (
     NormalizedMessage,
 )
 from sonya.core.utils.callback import DebugCallback
-from sonya.core.parsers.adapter import register_adapter
+from sonya.core.parsers.adapter import register_adapter, get_adapter
 from sonya.core.client.provider.interceptor import (
     LoggingInterceptor,
 )
@@ -95,6 +95,7 @@ __all__ = [
     "NormalizedMessage",
     # Adapter
     "register_adapter",
+    "get_adapter",
     # Logging
     "DebugCallback",
     "LoggingInterceptor",

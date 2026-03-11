@@ -475,10 +475,17 @@ def register_adapter(
     _ADAPTER_MAP[client_class_name] = adapter_cls
 
 
-def _get_adapter(client: Any) -> ResponseAdapter:
+def get_adapter(client: Any) -> ResponseAdapter:
     """Return the appropriate adapter for *client*.
 
     Detects client type by class name to avoid importing SDK packages.
+    Use :func:`register_adapter` to add support for custom client types.
+
+    Args:
+        client: Any provider client instance.
+
+    Returns:
+        A :class:`ResponseAdapter` for the given client.
 
     Raises:
         ValueError: If the client type is not recognised.
@@ -491,3 +498,8 @@ def _get_adapter(client: Any) -> ResponseAdapter:
             f"Supported: {list(_ADAPTER_MAP.keys())}"
         )
     return adapter_cls()
+
+
+# Backwards-compatible alias — kept for any code that still
+# references the old private name.
+_get_adapter = get_adapter

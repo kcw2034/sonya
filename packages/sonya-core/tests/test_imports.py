@@ -36,3 +36,39 @@ def test_prompt_exports():
     from sonya.core import Prompt, Example
     assert Prompt is not None
     assert Example is not None
+
+
+def test_get_adapter_is_public():
+    # get_adapter (no underscore) must be importable from sonya.core
+    from sonya.core import get_adapter
+    assert get_adapter is not None
+
+
+def test_get_adapter_returns_correct_adapter():
+    from sonya.core import get_adapter, ClientConfig
+    from sonya.core.client.provider.base import BaseClient
+    from sonya.core.parsers.adapter import (
+        AnthropicAdapter,
+        OpenAIAdapter,
+        GeminiAdapter,
+    )
+    from typing import Any, AsyncIterator
+
+    class FakeAnthropicClient(BaseClient):
+        def __init__(self) -> None:
+            super().__init__(ClientConfig(model='claude-test'))
+
+        async def _provider_generate(
+            self, messages: list[dict[str, Any]], **kwargs: Any
+        ) -> Any:
+            return None
+
+        async def _provider_generate_stream(
+            self, messages: list[dict[str, Any]], **kwargs: Any
+        ) -> AsyncIterator[Any]:
+            yield None
+
+    # Patch the class name to match the registry key
+    FakeAnthropicClient.__name__ = 'AnthropicClient'
+    adapter = get_adapter(FakeAnthropicClient())
+    assert isinstance(adapter, AnthropicAdapter)

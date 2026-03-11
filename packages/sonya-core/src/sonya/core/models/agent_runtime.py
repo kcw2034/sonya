@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from sonya.core.parsers.adapter import _get_adapter
+from sonya.core.parsers.adapter import get_adapter
 from sonya.core.models.agent import Agent, AgentResult
 from sonya.core.exceptions.errors import AgentError
 from sonya.core.utils.tool_context import ToolContext
@@ -44,7 +44,7 @@ class AgentRuntime:
     ) -> None:
         self._agent = agent
         self._context = context or ToolContext()
-        self._adapter = _get_adapter(agent.client)
+        self._adapter = get_adapter(agent.client)
         self._registry = self._build_registry()
         self._callbacks = agent.callbacks
 
