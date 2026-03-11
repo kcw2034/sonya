@@ -21,46 +21,36 @@
                     <textarea id="message-input"
                         placeholder="Sonya에게 메시지 입력"
                         rows="1"></textarea>
-                    <button id="send-btn" title="Send">
-                        <svg width="20" height="20" viewBox="0 0 24 24"
-                            fill="none" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="22" y1="2" x2="11" y2="13"></line>
-                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                        </svg>
-                    </button>
-                </div>
-                <div id="input-controls">
-                    <div id="tool-buttons">
-                        <button id="add-btn" class="ctrl-btn"
-                            title="Add">
-                            <svg width="18" height="18" viewBox="0 0 24 24"
-                                fill="none" stroke="currentColor" stroke-width="2"
-                                stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="12" y1="5" x2="12" y2="19"></line>
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                            </svg>
-                        </button>
-                        <button id="tone-btn" class="ctrl-btn ctrl-btn-label"
-                            title="Tone">
-                            <svg width="16" height="16" viewBox="0 0 24 24"
-                                fill="none" stroke="currentColor" stroke-width="2"
-                                stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="4" y1="21" x2="4" y2="14"></line>
-                                <line x1="4" y1="10" x2="4" y2="3"></line>
-                                <line x1="12" y1="21" x2="12" y2="12"></line>
-                                <line x1="12" y1="8" x2="12" y2="3"></line>
-                                <line x1="20" y1="21" x2="20" y2="16"></line>
-                                <line x1="20" y1="12" x2="20" y2="3"></line>
-                                <circle cx="4" cy="12" r="2"></circle>
-                                <circle cx="12" cy="10" r="2"></circle>
-                                <circle cx="20" cy="14" r="2"></circle>
-                            </svg>
-                            <span>도구</span>
-                        </button>
-                    </div>
-                    <div id="right-controls">
-                        <div id="model-selector">
+                    <div id="input-controls">
+                        <div id="tool-buttons">
+                            <button id="add-btn" class="ctrl-btn"
+                                title="Add">
+                                <svg width="18" height="18" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                            </button>
+                            <button id="tone-btn" class="ctrl-btn ctrl-btn-label"
+                                title="Tone">
+                                <svg width="16" height="16" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="4" y1="21" x2="4" y2="14"></line>
+                                    <line x1="4" y1="10" x2="4" y2="3"></line>
+                                    <line x1="12" y1="21" x2="12" y2="12"></line>
+                                    <line x1="12" y1="8" x2="12" y2="3"></line>
+                                    <line x1="20" y1="21" x2="20" y2="16"></line>
+                                    <line x1="20" y1="12" x2="20" y2="3"></line>
+                                    <circle cx="4" cy="12" r="2"></circle>
+                                    <circle cx="12" cy="10" r="2"></circle>
+                                    <circle cx="20" cy="14" r="2"></circle>
+                                </svg>
+                                <span>도구</span>
+                            </button>
+                        </div>
+                        <div id="right-controls">
                             <select id="model-select">
                                 {% for model in models %}
                                 <option value="{{ model.id }}"
@@ -69,6 +59,14 @@
                                 </option>
                                 {% endfor %}
                             </select>
+                            <button id="send-btn" title="Send">
+                                <svg width="20" height="20" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                </svg>
+                            </button>
                         </div>
                     </div>
                 </div>
