@@ -1,7 +1,8 @@
-"""sonya-pipeline — sonya 패키지 간 데이터 파이프라인 통합
+"""sonya-pipeline — inter-package data pipeline integration for sonya.
 
-sonya-pack(BinContext) ↔ sonya-core(Agent) 사이의 데이터 흐름을 연결하고,
-외부 데이터 소스와의 통합을 위한 파이프라인 모듈.
+Bridges the data flow between sonya-pack (BinContext) and sonya-core
+(Agent), providing a composable pipeline layer for external data source
+integration.
 """
 
 from sonya.pipeline.client.bridge import ContextBridge
