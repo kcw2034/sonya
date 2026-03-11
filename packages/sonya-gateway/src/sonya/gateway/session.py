@@ -7,7 +7,7 @@ from sonya.core import ClientConfig
 from sonya.core.client.provider.anthropic import AnthropicClient
 from sonya.core.client.provider.openai import OpenAIClient
 from sonya.core.client.provider.google import GeminiClient
-from sonya.core.parsers.adapter import _get_adapter
+from sonya.core.parsers.adapter import get_adapter
 
 
 def _create_provider_client(
@@ -63,7 +63,7 @@ class SessionManager:
             model=model, api_key=api_key
         )
         client = _create_provider_client(model, config)
-        adapter = _get_adapter(client)
+        adapter = get_adapter(client)
 
         session_id = uuid.uuid4().hex[:12]
         self._sessions[session_id] = {

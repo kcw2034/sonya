@@ -18,7 +18,7 @@ class TestSessionLifecycle:
         with patch(
             'sonya.gateway.session._create_provider_client'
         ) as mock_client, patch(
-            'sonya.gateway.session._get_adapter'
+            'sonya.gateway.session.get_adapter'
         ) as mock_adapter:
             mock_client.return_value = MagicMock()
             mock_adapter.return_value = MagicMock()
@@ -39,7 +39,7 @@ class TestSessionLifecycle:
         with patch(
             'sonya.gateway.session._create_provider_client'
         ), patch(
-            'sonya.gateway.session._get_adapter'
+            'sonya.gateway.session.get_adapter'
         ):
             sid = manager.create(
                 model='gpt-4o',
@@ -58,7 +58,7 @@ class TestSessionLifecycle:
         with patch(
             'sonya.gateway.session._create_provider_client'
         ), patch(
-            'sonya.gateway.session._get_adapter'
+            'sonya.gateway.session.get_adapter'
         ):
             sid = manager.create(
                 model='claude-sonnet-4-6',
@@ -79,7 +79,7 @@ class TestSessionLifecycle:
         with patch(
             'sonya.gateway.session._create_provider_client'
         ), patch(
-            'sonya.gateway.session._get_adapter'
+            'sonya.gateway.session.get_adapter'
         ):
             sid = manager.create(
                 model='claude-sonnet-4-6',
