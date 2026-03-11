@@ -106,11 +106,19 @@ class AgentRuntime:
             instructions, schemas
         )
 
-        # Extract system message for OpenAI-style injection
+        # Extract system message for OpenAI-style injection.
+        # Strip any pre-existing system messages from history to
+        # ensure the agent's instructions are the sole system
+        # message and avoid duplicates when history is passed
+        # from a previous agent (e.g. via Runner handoff).
         system_message = gen_kwargs.pop(
             '_system_message', None
         )
         if system_message:
+            history = [
+                m for m in history
+                if m.get('role') != 'system'
+            ]
             history = [
                 {'role': 'system', 'content': system_message}
             ] + history

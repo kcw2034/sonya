@@ -113,3 +113,73 @@ async def test_runtime_no_system_message_when_empty():
     )
     msgs = client.captured_messages
     assert msgs[0]['role'] == 'user'
+
+
+@pytest.mark.asyncio
+async def test_runtime_no_duplicate_system_when_history_has_system():
+    """When history already contains a system message and agent has
+    instructions, only the agent's instructions should appear as the
+    system message — not both."""
+    client = _DummyOpenAIClient()
+    agent = Agent(
+        name='test',
+        client=client,
+        instructions='You are helpful.',
+    )
+    runtime = AgentRuntime(agent)
+    await runtime.run([
+        {'role': 'system', 'content': 'Caller system prompt.'},
+        {'role': 'user', 'content': 'hi'},
+    ])
+    msgs = client.captured_messages
+    system_msgs = [
+        m for m in msgs if m.get('role') == 'system'
+    ]
+    assert len(system_msgs) == 1, (
+        f'Expected 1 system message, got {len(system_msgs)}: '
+        f'{system_msgs}'
+    )
+    assert system_msgs[0]['content'] == 'You are helpful.'
+
+
+@pytest.mark.asyncio
+async def test_runtime_preserves_system_when_no_instructions():
+    """When agent has no instructions, any existing system message
+    in history must be preserved unchanged."""
+    client = _DummyOpenAIClient()
+    agent = Agent(
+        name='test',
+        client=client,
+        instructions='',
+    )
+    runtime = AgentRuntime(agent)
+    await runtime.run([
+        {'role': 'system', 'content': 'Caller system prompt.'},
+        {'role': 'user', 'content': 'hi'},
+    ])
+    msgs = client.captured_messages
+    system_msgs = [
+        m for m in msgs if m.get('role') == 'system'
+    ]
+    assert len(system_msgs) == 1
+    assert system_msgs[0]['content'] == 'Caller system prompt.'
+
+
+@pytest.mark.asyncio
+async def test_runtime_agent_instructions_first_in_messages():
+    """After dedup, agent instructions must be at index 0."""
+    client = _DummyOpenAIClient()
+    agent = Agent(
+        name='test',
+        client=client,
+        instructions='Agent instructions.',
+    )
+    runtime = AgentRuntime(agent)
+    await runtime.run([
+        {'role': 'system', 'content': 'Old system.'},
+        {'role': 'user', 'content': 'hello'},
+    ])
+    msgs = client.captured_messages
+    assert msgs[0]['role'] == 'system'
+    assert msgs[0]['content'] == 'Agent instructions.'
+    assert msgs[1]['role'] == 'user'
