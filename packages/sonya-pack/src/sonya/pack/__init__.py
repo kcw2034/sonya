@@ -1,4 +1,4 @@
-"""sonya-pack — 초경량 바이너리 컨텍스트 관리 엔진 (BinContext)"""
+"""sonya-pack — ultra-lightweight binary context management engine (BinContext)."""
 
 from sonya.pack.client.engine import BinContextEngine
 from sonya.pack.schemas.schema import (
