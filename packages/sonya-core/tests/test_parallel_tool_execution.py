@@ -11,7 +11,7 @@ import pytest
 
 from sonya.core.models.agent import Agent, AgentResult
 from sonya.core.models.agent_runtime import AgentRuntime
-from sonya.core.client.provider.base import BaseClient
+from sonya.core.client.base import BaseClient
 from sonya.core.models.tool_registry import ToolRegistry
 from sonya.core.schemas.types import ClientConfig, GuardrailConfig
 from sonya.core.utils.decorator import tool

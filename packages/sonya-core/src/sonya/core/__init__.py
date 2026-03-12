@@ -15,7 +15,7 @@ from sonya.core.cache.base import BaseCache
 from sonya.core.cache.provider.anthropic import AnthropicCache
 from sonya.core.cache.provider.gemini import GeminiCache
 from sonya.core.cache.provider.openai import OpenAICache
-from sonya.core.client.provider.base import BaseClient
+from sonya.core.client.base import BaseClient
 from sonya.core.client.provider.anthropic import AnthropicClient
 from sonya.core.client.provider.google import GeminiClient
 from sonya.core.client.provider.openai import OpenAIClient

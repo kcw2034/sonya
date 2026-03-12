@@ -9,7 +9,7 @@ import pytest
 
 from sonya.core.models.agent_runtime import AgentRuntime
 from sonya.core.models.agent import Agent, AgentResult
-from sonya.core.client.provider.base import BaseClient
+from sonya.core.client.base import BaseClient
 from sonya.core.exceptions.errors import AgentError
 from sonya.core.parsers.adapter import (
     AnthropicAdapter,

@@ -13,7 +13,7 @@ from sonya.core.models.tool import Tool
 from sonya.core.models.tool_registry import ToolRegistry
 from sonya.core.utils.tool_context import ToolContext
 from sonya.core.utils.decorator import tool
-from sonya.core.client.provider.base import BaseClient
+from sonya.core.client.base import BaseClient
 from sonya.core.schemas.types import ClientConfig
 
 

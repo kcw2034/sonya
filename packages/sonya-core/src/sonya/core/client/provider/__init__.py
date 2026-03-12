@@ -1,6 +1,6 @@
 """Provider client implementations."""
 
-from sonya.core.client.provider.base import BaseClient
+from sonya.core.client.base import BaseClient
 from sonya.core.client.provider.anthropic import AnthropicClient
 from sonya.core.client.provider.google import GeminiClient
 from sonya.core.client.provider.openai import OpenAIClient

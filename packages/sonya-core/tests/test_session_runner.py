@@ -11,7 +11,7 @@ from sonya.core.models.agent import Agent
 from sonya.core.models.runner import Runner, RunnerConfig
 from sonya.core.models.session import Session
 from sonya.core.stores.in_memory import InMemorySessionStore
-from sonya.core.client.provider.base import BaseClient
+from sonya.core.client.base import BaseClient
 from sonya.core.schemas.types import ClientConfig
 
 

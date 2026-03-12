@@ -9,7 +9,7 @@ import pytest
 
 from sonya.core.models.agent_runtime import _HANDOFF_PREFIX
 from sonya.core.models.agent import Agent
-from sonya.core.client.provider.base import BaseClient
+from sonya.core.client.base import BaseClient
 from sonya.core.models.runner import Runner, RunnerConfig
 from sonya.core.schemas.types import ClientConfig
 from sonya.core.utils.router import ContextRouter

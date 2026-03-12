@@ -1,6 +1,6 @@
 """Provider clients."""
 
-from sonya.core.client.provider.base import BaseClient
+from sonya.core.client.base import BaseClient
 from sonya.core.client.provider.anthropic import (
     AnthropicClient,
 )

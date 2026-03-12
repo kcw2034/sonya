@@ -1,4 +1,4 @@
-"""BaseClient ABC — base for all provider clients."""
+"""BaseClient ABC — abstract interface for all provider clients."""
 
 from __future__ import annotations
 

@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from sonya.core.client.provider.base import BaseClient
+from sonya.core.client.base import BaseClient
 from sonya.core.exceptions.errors import MaxRetriesExceededError
 from sonya.core.schemas.types import ClientConfig, RetryConfig
 

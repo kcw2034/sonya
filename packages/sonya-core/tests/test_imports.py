@@ -46,7 +46,7 @@ def test_get_adapter_is_public():
 
 def test_get_adapter_returns_correct_adapter():
     from sonya.core import get_adapter, ClientConfig
-    from sonya.core.client.provider.base import BaseClient
+    from sonya.core.client.base import BaseClient
     from sonya.core.parsers.adapter import (
         AnthropicAdapter,
     )
