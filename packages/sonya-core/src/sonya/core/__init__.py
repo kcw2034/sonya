@@ -7,6 +7,7 @@ from sonya.core.schemas.types import (
     CacheUsage,
     ClientConfig,
     Interceptor,
+    RetryConfig,
 )
 from sonya.core.client.cache.base import BaseCache
 from sonya.core.client.cache.anthropic import AnthropicCache
@@ -16,7 +17,11 @@ from sonya.core.client.provider.base import BaseClient
 from sonya.core.client.provider.anthropic import AnthropicClient
 from sonya.core.client.provider.google import GeminiClient
 from sonya.core.client.provider.openai import OpenAIClient
-from sonya.core.exceptions.errors import AgentError, ToolError
+from sonya.core.exceptions.errors import (
+    AgentError,
+    MaxRetriesExceededError,
+    ToolError,
+)
 from sonya.core.models.tool import Tool, ToolResult
 from sonya.core.utils.tool_context import ToolContext
 from sonya.core.models.tool_registry import ToolRegistry
@@ -57,8 +62,10 @@ __all__ = [
     "AgentCallback",
     "ClientConfig",
     "Interceptor",
+    "RetryConfig",
     # Errors
     "AgentError",
+    "MaxRetriesExceededError",
     "ToolError",
     # Tool
     "Tool",

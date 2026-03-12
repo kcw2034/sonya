@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
 from abc import ABC, abstractmethod
 from typing import Any, AsyncIterator
 
 from sonya.core.schemas.types import ClientConfig, Interceptor
+from sonya.core.exceptions.errors import MaxRetriesExceededError
 
 
 class BaseClient(ABC):
@@ -35,21 +37,46 @@ class BaseClient(ABC):
     ) -> Any:
         """Generate a single response from the LLM.
 
+        Retries on transient errors according to the
+        :class:`RetryConfig` stored in ``config.retry``.
+        Exponential backoff is applied between attempts.
+
         Args:
             messages: List of message dicts for the LLM.
             **kwargs: Provider-specific arguments.
 
         Returns:
             The native SDK response object.
+
+        Raises:
+            MaxRetriesExceededError: When all retry attempts fail.
         """
-        messages, kwargs = await self._run_before(
-            messages, kwargs
+        retry = self._config.retry
+        last_error: Exception = RuntimeError(
+            'generate() never executed'
         )
-        response = await self._provider_generate(
-            messages, **kwargs
-        )
-        response = await self._run_after(response)
-        return response
+        for attempt in range(retry.max_retries + 1):
+            try:
+                msgs, kw = await self._run_before(
+                    messages, kwargs
+                )
+                response = await self._provider_generate(
+                    msgs, **kw
+                )
+                response = await self._run_after(response)
+                return response
+            except retry.retryable_exceptions as exc:
+                last_error = exc
+                if attempt < retry.max_retries:
+                    delay = min(
+                        retry.base_delay
+                        * (retry.backoff_factor ** attempt),
+                        retry.max_delay,
+                    )
+                    await asyncio.sleep(delay)
+        raise MaxRetriesExceededError(
+            retry.max_retries + 1, last_error
+        ) from last_error
 
     async def generate_stream(
         self,

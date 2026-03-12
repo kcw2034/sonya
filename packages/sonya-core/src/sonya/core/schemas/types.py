@@ -81,12 +81,37 @@ class AgentCallback(Protocol):
 
 
 @dataclass(frozen=True, slots=True)
+class RetryConfig:
+    """Retry and exponential-backoff settings for provider calls.
+
+    Args:
+        max_retries: Maximum number of retries after the initial attempt.
+            Set to 0 to disable retries entirely.
+        base_delay: Seconds to wait before the first retry.
+        max_delay: Upper bound on the computed backoff delay (seconds).
+        backoff_factor: Multiplier applied after each failed attempt.
+            Delay for attempt n = min(base_delay * backoff_factor**n,
+            max_delay).
+        retryable_exceptions: Tuple of exception types that trigger a
+            retry.  Defaults to ``(OSError,)`` which covers network-level
+            errors (``ConnectionError``, ``TimeoutError``, etc.).
+    """
+
+    max_retries: int = 3
+    base_delay: float = 1.0
+    max_delay: float = 60.0
+    backoff_factor: float = 2.0
+    retryable_exceptions: tuple[type[Exception], ...] = (OSError,)
+
+
+@dataclass(frozen=True, slots=True)
 class ClientConfig:
     """Common configuration for all provider clients."""
 
     model: str
     api_key: str | None = None
     interceptors: list[Interceptor] = field(default_factory=list)
+    retry: RetryConfig = field(default_factory=RetryConfig)
 
 
 @dataclass(frozen=True, slots=True)
