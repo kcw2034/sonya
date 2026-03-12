@@ -1,7 +1,7 @@
 """Parsers for schema generation and response adaptation."""
 
-from sonya.core.parsers.schema_parser import function_to_schema
-from sonya.core.parsers.adapter import (
+from .schema_parser import function_to_schema
+from .adapter import (
     AnthropicAdapter,
     GeminiAdapter,
     OpenAIAdapter,

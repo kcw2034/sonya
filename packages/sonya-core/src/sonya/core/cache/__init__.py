@@ -1,9 +1,9 @@
 """Cache abstractions and provider-specific implementations."""
 
-from sonya.core.cache.base import BaseCache
-from sonya.core.cache.provider.anthropic import AnthropicCache
-from sonya.core.cache.provider.gemini import GeminiCache
-from sonya.core.cache.provider.openai import OpenAICache
+from .base import BaseCache
+from .provider.anthropic import AnthropicCache
+from .provider.gemini import GeminiCache
+from .provider.openai import OpenAICache
 
 __all__ = [
     'BaseCache',

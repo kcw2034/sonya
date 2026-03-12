@@ -1,12 +1,12 @@
 """Provider clients."""
 
-from sonya.core.client.base import BaseClient
-from sonya.core.client.provider.anthropic import (
+from .base import BaseClient
+from .provider.anthropic import (
     AnthropicClient,
 )
-from sonya.core.client.provider.google import GeminiClient
-from sonya.core.client.provider.openai import OpenAIClient
-from sonya.core.client.provider.interceptor import (
+from .provider.google import GeminiClient
+from .provider.openai import OpenAIClient
+from .provider.interceptor import (
     LoggingInterceptor,
 )
 

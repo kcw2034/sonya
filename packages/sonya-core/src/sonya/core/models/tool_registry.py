@@ -8,7 +8,7 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 from sonya.core.utils.validation import validate_input
-from sonya.core.models.tool import Tool, ToolResult
+from .tool import Tool, ToolResult
 
 if TYPE_CHECKING:
     from sonya.core.utils.tool_context import ToolContext

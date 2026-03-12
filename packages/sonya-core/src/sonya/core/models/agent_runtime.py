@@ -8,16 +8,16 @@ from collections.abc import AsyncGenerator
 from typing import Any, cast
 
 from sonya.core.parsers.adapter import get_adapter
-from sonya.core.models.agent import Agent, AgentResult
+from .agent import Agent, AgentResult
 from sonya.core.exceptions.errors import AgentError, GuardrailError
-from sonya.core.models.tool import ToolResult
+from .tool import ToolResult
 from sonya.core.schemas.types import UsageSummary
 from sonya.core.client.provider.interceptor import extract_usage
 from sonya.core.utils.validation import validate_input
 from sonya.core.utils.tool_context import ToolContext
-from sonya.core.models.tool_registry import ToolRegistry
+from .tool_registry import ToolRegistry
 from sonya.core.utils.handoff import _HANDOFF_PREFIX
-from sonya.core.models.prompt import Prompt
+from .prompt import Prompt
 
 # Maps provider client class names to schema format names.
 # Defined at module level to avoid recreation on every run().

@@ -6,10 +6,10 @@ import dataclasses
 from dataclasses import dataclass, field
 from typing import Any
 
-from sonya.core.models.agent_runtime import AgentRuntime
-from sonya.core.models.agent import Agent, AgentResult
+from .agent_runtime import AgentRuntime
+from .agent import Agent, AgentResult
 from sonya.core.utils.tool_context import ToolContext
-from sonya.core.models.tool import Tool
+from .tool import Tool
 from sonya.core.utils.handoff import _instructions_preview
 
 

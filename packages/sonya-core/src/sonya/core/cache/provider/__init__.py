@@ -1,8 +1,8 @@
 """Provider-specific cache implementations."""
 
-from sonya.core.cache.provider.anthropic import AnthropicCache
-from sonya.core.cache.provider.gemini import GeminiCache
-from sonya.core.cache.provider.openai import OpenAICache
+from .anthropic import AnthropicCache
+from .gemini import GeminiCache
+from .openai import OpenAICache
 
 __all__ = [
     'AnthropicCache',

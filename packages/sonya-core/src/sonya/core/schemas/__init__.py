@@ -1,6 +1,6 @@
 """Schema types, event definitions, and memory models."""
 
-from sonya.core.schemas.types import (
+from .types import (
     AgentCallback,
     CacheConfig,
     CachedContent,
@@ -8,7 +8,7 @@ from sonya.core.schemas.types import (
     ClientConfig,
     Interceptor,
 )
-from sonya.core.schemas.events import (
+from .events import (
     AgentEndEvent,
     AgentStartEvent,
     HandoffEvent,
@@ -18,7 +18,7 @@ from sonya.core.schemas.events import (
     LogEvent,
     ToolExecutionEvent,
 )
-from sonya.core.schemas.memory import (
+from .memory import (
     MemoryEntry,
     MemoryPipeline,
     MemoryType,

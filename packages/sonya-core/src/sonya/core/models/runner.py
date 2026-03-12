@@ -7,8 +7,8 @@ import uuid
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
-from sonya.core.models.agent_runtime import AgentRuntime
-from sonya.core.models.agent import Agent, AgentResult
+from .agent_runtime import AgentRuntime
+from .agent import Agent, AgentResult
 from sonya.core.exceptions.errors import AgentError
 from sonya.core.utils.router import ContextRouter
 from sonya.core.utils.tool_context import ToolContext
