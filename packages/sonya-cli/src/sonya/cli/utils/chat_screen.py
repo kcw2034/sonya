@@ -23,6 +23,7 @@ from .auth import (
 )
 from .chat_panel import ChatPanel
 from .settings_panel import SettingsPanel
+
 from sonya.cli.client.gateway_client import GatewayClient
 
 
