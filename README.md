@@ -2,16 +2,16 @@
 
 Lightweight Python LLM agent framework. Thin wrappers around official
 SDKs with an interceptor-based observability layer, a composable agent
-runtime, and cross-provider memory pipeline.
+runtime, session persistence, and cross-provider memory pipeline.
 
 ## Status
 
 | Package | Description | Status |
 |---------|-------------|--------|
-| `sonya-core` | LLM clients, Tool system, Agent Runtime, orchestration | ✅ |
+| `sonya-core` | LLM clients, Tool system, Agent Runtime, orchestration, session persistence | ✅ |
 | `sonya-cli` | Textual TUI chat interface (`sonya chat`) | ✅ |
 | `sonya-pack` | BinContext append-only storage | ✅ |
-| `sonya-pipeline` | Cross-provider message normalization + pipeline stages | ✅ |
+| `sonya-pipeline` | Cross-provider message normalization, pipeline stages, FileSessionStore | ✅ |
 | `sonya-extension` | LangChain model adapter | ✅ |
 
 ## Repository Layout
@@ -23,10 +23,12 @@ packages/
 │       ├── client/              # Provider clients (Anthropic/OpenAI/Gemini)
 │       │   ├── provider/        # BaseClient, thin wrappers, interceptors
 │       │   └── cache/           # Cache abstractions per provider
-│       ├── models/              # Agent, AgentRuntime, Tool, Runner, Supervisor
+│       ├── models/              # Agent, AgentRuntime, Tool, Runner, Supervisor,
+│       │                        # Session, SessionStore
+│       ├── stores/              # InMemorySessionStore
 │       ├── parsers/             # Response adapters + JSON schema parser
 │       ├── schemas/             # types.py, events.py, memory.py
-│       ├── utils/               # @tool decorator, DebugCallback, router
+│       ├── utils/               # @tool decorator, DebugCallback, ToolContext, router
 │       └── exceptions/          # AgentError, GuardrailError, ...
 ├── sonya-cli/
 │   └── src/sonya/cli/           # Textual TUI, gateway client, auth
@@ -34,7 +36,7 @@ packages/
 │   └── src/sonya/pack/          # BinContextEngine, SessionIndex
 ├── sonya-pipeline/
 │   └── src/sonya/pipeline/      # DefaultMemoryPipeline, Pipeline stages,
-│                                # InMemoryStore, BridgeStore
+│                                # InMemoryStore, BridgeStore, FileSessionStore
 └── sonya-extension/
     └── src/sonya/extension/     # LangChainClient adapter
 ```
@@ -83,6 +85,83 @@ asyncio.run(main())
 ```
 
 ## Feature Overview
+
+### Agent with Tools
+
+```python
+from sonya.core import Agent, AgentRuntime, tool
+
+@tool(description='Search the web')
+async def search(query: str) -> str:
+    return f'Results for: {query}'
+
+agent = Agent(
+    name='assistant',
+    client=client,
+    tools=[search],
+)
+result = await AgentRuntime(agent).run(
+    [{'role': 'user', 'content': 'Search Python news'}]
+)
+print(result.text)
+```
+
+### ToolContext — shared state & dynamic registration
+
+Tools can declare a `context: ToolContext` parameter to access run-scoped
+shared state. This parameter is injected automatically and never exposed
+to the LLM.
+
+```python
+from sonya.core import tool, ToolContext
+
+@tool(description='Search and remember the query')
+async def search(query: str, context: ToolContext) -> str:
+    context.set('last_query', query)        # store shared state
+    return f'Results for: {query}'
+
+@tool(description='Get the last search query')
+async def get_last(context: ToolContext) -> str:
+    return context.get('last_query', 'none')
+```
+
+Tools can also register new tools dynamically mid-run:
+
+```python
+@tool()
+async def bootstrap(context: ToolContext) -> str:
+    @tool()
+    async def extra_tool(x: str) -> str:
+        """Registered at runtime."""
+        return x
+    context.add_tool(extra_tool)
+    return 'extra_tool is now available'
+```
+
+### Session Persistence
+
+Resume conversations across process restarts.
+
+```python
+from sonya.core import Runner, RunnerConfig, InMemorySessionStore
+# or: from sonya.pipeline.stores.file_session_store import FileSessionStore
+
+store = InMemorySessionStore()          # swap for FileSessionStore for disk
+runner = Runner(RunnerConfig(agents=[agent], session_store=store))
+
+# First turn — auto-generates session_id
+result = await runner.run(
+    [{'role': 'user', 'content': 'Hello!'}],
+    session_id='chat-001',
+)
+print(result.metadata['session_id'])    # 'chat-001'
+
+# Resume — prior history is prepended automatically
+result = await runner.run(
+    [{'role': 'user', 'content': 'What did I say?'}],
+    session_id='chat-001',
+)
+```
 
 ### Streaming
 
@@ -158,16 +237,28 @@ class ApprovalCallback:
 
 ### Observability
 
-Every run automatically collects token usage and timing metrics.
+Every run automatically collects token usage and timing metrics. LLM
+call events are also available via callbacks.
 
 ```python
+# Post-run summary
 result = await AgentRuntime(agent).run(messages)
 usage = result.metadata['usage']  # UsageSummary
-
 print(usage.total_input_tokens)
 print(usage.total_output_tokens)
 print(usage.llm_calls)
 print(usage.total_latency_ms)
+
+# Real-time LLM call monitoring via callbacks
+class MetricsCallback:
+    async def on_llm_start(self, agent_name, iteration, message_count):
+        print(f'[{agent_name}] iter={iteration} msgs={message_count}')
+
+    async def on_llm_end(self, agent_name, iteration, input_tokens,
+                         output_tokens, latency_ms):
+        print(f'  tokens={input_tokens}+{output_tokens} {latency_ms:.0f}ms')
+
+agent = Agent(..., callbacks=[MetricsCallback()])
 ```
 
 ### Cross-Provider Memory Pipeline
@@ -187,16 +278,7 @@ openai_messages = pipeline.reconstruct(normalized, 'openai')
 Inject custom logic before/after every LLM API call.
 
 ```python
-from sonya.core import ClientConfig, AnthropicClient
-
-class LoggingInterceptor:
-    async def before_request(self, messages, kwargs):
-        print(f'→ {len(messages)} messages')
-        return messages, kwargs
-
-    async def after_response(self, response):
-        print('← response received')
-        return response
+from sonya.core import LoggingInterceptor, ClientConfig, AnthropicClient
 
 config = ClientConfig(
     model='claude-sonnet-4-6',

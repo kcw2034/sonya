@@ -7,7 +7,9 @@ including tool calls and tool results.
 
 ## Features
 
-- `ContextBridge`: BinContextEngine ↔ Agent message bridge
+- `ContextBridge`: BinContextEngine ↔ Agent message bridge with
+  `save_messages`, `save_agent_result`, `load_context`, `list_sessions`,
+  `message_count`
 - `Pipeline`: sequential stage engine for message transformation
 - `DefaultMemoryPipeline`: cross-provider normalization and reconstruction
   — supports **Anthropic**, **OpenAI**, and **Gemini** including
@@ -15,6 +17,7 @@ including tool calls and tool results.
 - `InMemoryStore`: in-process session store for testing / short-lived sessions
 - `BridgeStore`: durable session store backed by BinContext (persists
   tool_calls and tool_results)
+- `FileSessionStore`: JSON file-backed session store (one file per session)
 - Built-in stages: `TruncateStage`, `SystemPromptStage`,
   `FilterByRoleStage`, `MetadataInjectionStage`
 - Protocol-based extension: `PipelineStage`, `SourceAdapter`, `MemoryStore`
@@ -106,7 +109,26 @@ normalized = pipeline.normalize(anthropic_history, 'anthropic')
 gemini_messages = pipeline.reconstruct(normalized, 'gemini')
 ```
 
-### BridgeStore — durable session persistence
+### FileSessionStore — JSON file-backed persistence
+
+```python
+from sonya.pipeline.stores.file_session_store import FileSessionStore
+from sonya.core import Runner, RunnerConfig
+
+store = FileSessionStore('./sessions')   # directory auto-created
+runner = Runner(RunnerConfig(agents=[agent], session_store=store))
+
+result = await runner.run(
+    [{'role': 'user', 'content': 'Hello!'}],
+    session_id='chat-001',
+)
+# Saved to ./sessions/chat-001.json
+```
+
+Each session file contains `session_id`, `history`, `agent_name`,
+`metadata`, `created_at`, and `updated_at`.
+
+### BridgeStore — durable session persistence via BinContext
 
 ```python
 from sonya.pack import BinContextEngine
@@ -119,6 +141,15 @@ store = BridgeStore(bridge)
 pipeline = DefaultMemoryPipeline(store=store)
 pipeline.save_session('session-1', history, 'anthropic')
 restored = pipeline.load_session('session-1', 'openai')
+```
+
+### ContextBridge — utilities
+
+```python
+bridge.save_agent_result('sess-1', agent_result)  # saves result.text
+sessions = bridge.list_sessions()                   # all session IDs
+count = bridge.message_count('sess-1')             # message count
+engine = bridge.engine                             # underlying BinContextEngine
 ```
 
 ## Structure
@@ -134,7 +165,8 @@ src/sonya/pipeline/
 │   └── types.py               # MemoryStore / PipelineStage / SourceAdapter
 └── stores/
     ├── in_memory.py           # InMemoryStore
-    └── bridge_store.py        # BridgeStore (BinContext-backed)
+    ├── bridge_store.py        # BridgeStore (BinContext-backed)
+    └── file_session_store.py  # FileSessionStore (JSON files)
 ```
 
 ## Provider Support Matrix
@@ -160,6 +192,7 @@ Current test coverage:
 - `test_in_memory_store.py` — InMemoryStore save/load/clear
 - `test_bridge_store.py` — BridgeStore with BinContext delegation
 - `test_bridge_store_tool_calls.py` — tool_calls/tool_results persistence
+- `test_context_bridge_methods.py` — ContextBridge isolated method tests
 - `test_memory_store_protocol.py` — MemoryStore protocol compliance
 - `test_memory_pipeline_normalize.py` — provider-specific normalization
 - `test_memory_pipeline_reconstruct.py` — reconstruction and roundtrips
@@ -167,4 +200,7 @@ Current test coverage:
   cross-provider conversion
 - `test_memory_pipeline_session.py` — session save/load with store
 - `test_integration_memory.py` — end-to-end flows
+- `test_pipeline_stages_isolation.py` — FilterByRoleStage, MetadataInjectionStage,
+  TruncateStage, SystemPromptStage, Pipeline.stages isolated tests
+- `test_file_session_store.py` — FileSessionStore CRUD, round-trip, directory creation
 - `test_exports.py` — public API exports

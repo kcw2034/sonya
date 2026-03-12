@@ -1,7 +1,8 @@
 # sonya-core
 
 Core package of the Sonya framework. Thin wrappers around official LLM
-SDKs with a tool system, agent runtime, and multi-agent orchestration.
+SDKs with a tool system, agent runtime, session persistence, and
+multi-agent orchestration.
 
 ## Installation
 
@@ -32,17 +33,20 @@ src/sonya/core/
 │       ├── anthropic.py
 │       ├── openai.py
 │       └── gemini.py
-├── models/                        # Agent/Tool/Runner/Supervisor models
+├── models/                        # Agent/Tool/Runner/Supervisor/Session models
 │   ├── agent.py                   # Agent, AgentResult
 │   ├── agent_runtime.py           # AgentRuntime (run / run_stream)
 │   ├── tool.py                    # Tool, ToolResult
-│   ├── tool_registry.py
-│   ├── runner.py                  # Runner, RunnerConfig
+│   ├── tool_registry.py           # ToolRegistry (register/unregister/has/clear)
+│   ├── runner.py                  # Runner, RunnerConfig (session_store support)
+│   ├── session.py                 # Session, SessionStore protocol
 │   ├── supervisor.py
 │   └── prompt.py                  # Prompt, Example
+├── stores/                        # session store implementations
+│   └── in_memory.py               # InMemorySessionStore
 ├── parsers/                       # provider response adapters + schema parser
 │   ├── adapter.py
-│   └── schema_parser.py
+│   └── schema_parser.py           # ToolContext params excluded automatically
 ├── schemas/                       # shared types/events/memory schemas
 │   ├── types.py                   # ClientConfig, GuardrailConfig, RetryConfig,
 │   │                              # UsageSummary, AgentCallback, Interceptor
@@ -50,7 +54,7 @@ src/sonya/core/
 │   └── memory.py                  # NormalizedMessage, MemoryPipeline
 ├── utils/
 │   ├── decorator.py               # @tool decorator
-│   ├── tool_context.py
+│   ├── tool_context.py            # ToolContext (shared state + add/remove_tool)
 │   ├── router.py
 │   ├── callback.py                # DebugCallback
 │   ├── handoff.py
@@ -106,6 +110,63 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
+## ToolContext — Shared State & Dynamic Registration
+
+Tool functions can declare a `context: ToolContext` parameter to read and
+write run-scoped shared state. This parameter is injected automatically at
+runtime and **never appears in the LLM tool schema**.
+
+```python
+from sonya.core import tool, ToolContext
+
+@tool(description='Search and cache the query')
+async def search(query: str, context: ToolContext) -> str:
+    context.set('last_query', query)
+    return f'Results for: {query}'
+
+@tool(description='Return the last search query')
+async def recall(context: ToolContext) -> str:
+    return context.get('last_query', 'none')
+```
+
+Tools can also register new tools mid-run:
+
+```python
+@tool()
+async def bootstrap(context: ToolContext) -> str:
+    @tool()
+    async def dynamic(x: str) -> str:
+        """Registered at runtime."""
+        return x
+    context.add_tool(dynamic)   # visible in the next LLM iteration
+    return 'dynamic tool registered'
+```
+
+## Session Persistence
+
+Resume conversations across runs or process restarts.
+
+```python
+from sonya.core import Runner, RunnerConfig, InMemorySessionStore
+# from sonya.pipeline.stores.file_session_store import FileSessionStore  # disk
+
+store = InMemorySessionStore()
+runner = Runner(RunnerConfig(agents=[agent], session_store=store))
+
+# First turn
+result = await runner.run(
+    [{'role': 'user', 'content': 'Hello!'}],
+    session_id='chat-001',
+)
+
+# Resume — prior history automatically prepended
+result = await runner.run(
+    [{'role': 'user', 'content': 'What did I say?'}],
+    session_id='chat-001',
+)
+print(result.metadata['session_id'])  # 'chat-001'
+```
+
 ## Streaming
 
 `run_stream()` yields text chunks as they are produced, then yields the
@@ -141,7 +202,8 @@ client = AnthropicClient(config)
 
 ## Guardrails
 
-Limit cumulative tool calls and total tool execution time per run.
+Limit cumulative tool calls, total tool execution time, and concurrent
+tool executions per run.
 
 ```python
 from sonya.core import Agent, GuardrailConfig
@@ -152,7 +214,8 @@ agent = Agent(
     tools=[search, fetch],
     guardrails=GuardrailConfig(
         max_tool_calls=10,
-        max_tool_time=30.0,  # seconds
+        max_tool_time=30.0,         # seconds
+        max_concurrent_tools=3,
     ),
 )
 ```
@@ -211,8 +274,11 @@ agent = Agent(
 
 Every `AgentResult` carries a `UsageSummary` in `metadata['usage']`
 with token counts, LLM call count, iteration count, and tool timing.
+Real-time LLM events are delivered via `on_llm_start` / `on_llm_end`
+callbacks.
 
 ```python
+# Post-run aggregate
 result = await AgentRuntime(agent).run(messages)
 usage = result.metadata['usage']  # UsageSummary
 
@@ -223,14 +289,34 @@ print(usage.iterations)           # agent loop iterations
 print(usage.total_tool_calls)
 print(usage.total_tool_time_ms)   # ms
 print(usage.total_latency_ms)     # cumulative LLM round-trip ms
+
+# Real-time LLM monitoring
+class MyCallback:
+    async def on_llm_start(
+        self, agent_name: str, iteration: int, message_count: int
+    ) -> None:
+        print(f'LLM call #{iteration} with {message_count} messages')
+
+    async def on_llm_end(
+        self, agent_name: str, iteration: int,
+        input_tokens: int, output_tokens: int, latency_ms: float,
+    ) -> None:
+        print(f'  → {input_tokens}+{output_tokens} tokens, {latency_ms:.0f}ms')
 ```
 
-`extract_usage(response)` is also available as a standalone utility:
+## Dynamic Tool Registry
+
+`ToolRegistry` supports runtime management of tools:
 
 ```python
-from sonya.core.client.provider.interceptor import extract_usage
+from sonya.core import ToolRegistry
 
-inp, out = extract_usage(response)  # works with Anthropic/OpenAI/Gemini
+registry = ToolRegistry()
+registry.register(my_tool)
+registry.register_many([tool_a, tool_b])
+registry.has('my_tool')       # True
+registry.unregister('my_tool')
+registry.clear()
 ```
 
 ## Main APIs
@@ -243,7 +329,8 @@ inp, out = extract_usage(response)  # works with Anthropic/OpenAI/Gemini
 - **Agent**: `Agent`, `AgentResult`, `AgentRuntime`
 - **Guardrails**: `GuardrailConfig`, `GuardrailError`
 - **Structured Output**: `Agent(output_schema=...)`
-- **Observability**: `UsageSummary`
+- **Observability**: `UsageSummary`, `AgentCallback.on_llm_start/on_llm_end`
+- **Session**: `Session`, `SessionStore`, `InMemorySessionStore`
 - **Orchestration**: `Runner`, `RunnerConfig`, `RunnerCallback`,
   `SupervisorRuntime`, `SupervisorConfig`
 - **Routing/Memory**: `ContextRouter`, `MemoryType`, `MemoryEntry`,
@@ -267,7 +354,7 @@ inp, out = extract_usage(response)  # works with Anthropic/OpenAI/Gemini
 pytest tests/ -v
 ```
 
-Current test coverage:
+Current test coverage (531 tests):
 
 - Provider clients: `test_base_client.py`, `test_base_client_retry.py`
 - Cache: `test_cache_anthropic.py`, `test_cache_openai.py`,
@@ -279,6 +366,13 @@ Current test coverage:
 - Structured Output: `test_structured_output.py`
 - Human-in-the-Loop: `test_human_in_the_loop.py`
 - Observability: `test_observability.py`
+- LLM Callbacks: `test_llm_callbacks.py`
+- ToolContext Injection: `test_tool_context_injection.py`
+- Dynamic Tool Registry: `test_dynamic_tool_registry.py`,
+  `test_dynamic_tool_context.py`
+- Session: `test_session.py`, `test_session_runner.py`
+- Parallel Tool Execution: `test_parallel_tool_execution.py`
 - Orchestration: `test_handoff.py`, `test_supervisor.py`
 - Routing/Memory: `test_context_router.py`, `test_context_memory_types.py`
-- Logging/Import: `test_logging.py`, `test_imports.py`
+- Exports/Import: `test_top_level_exports.py`, `test_logging.py`,
+  `test_imports.py`
