@@ -1,4 +1,4 @@
-"""BaseCache ABC -- base for all provider cache implementations."""
+"""BaseCache ABC — abstract interface for all provider cache implementations."""
 
 from __future__ import annotations
 

@@ -11,10 +11,10 @@ from sonya.core.schemas.types import (
     RetryConfig,
     UsageSummary,
 )
-from sonya.core.client.cache.base import BaseCache
-from sonya.core.client.cache.anthropic import AnthropicCache
-from sonya.core.client.cache.gemini import GeminiCache
-from sonya.core.client.cache.openai import OpenAICache
+from sonya.core.cache.base import BaseCache
+from sonya.core.cache.provider.anthropic import AnthropicCache
+from sonya.core.cache.provider.gemini import GeminiCache
+from sonya.core.cache.provider.openai import OpenAICache
 from sonya.core.client.provider.base import BaseClient
 from sonya.core.client.provider.anthropic import AnthropicClient
 from sonya.core.client.provider.google import GeminiClient

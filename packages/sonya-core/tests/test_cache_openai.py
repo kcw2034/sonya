@@ -3,7 +3,7 @@
 import pytest
 
 from sonya.core.schemas.types import CacheConfig, CacheUsage
-from sonya.core.client.cache.openai import OpenAICache
+from sonya.core.cache.provider.openai import OpenAICache
 from unittest.mock import MagicMock
 
 

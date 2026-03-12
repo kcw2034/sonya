@@ -9,7 +9,7 @@ from sonya.core.schemas.types import (
     CachedContent,
     CacheUsage,
 )
-from sonya.core.client.cache.base import BaseCache
+from sonya.core.cache.base import BaseCache
 
 
 class GeminiCache(BaseCache):

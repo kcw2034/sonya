@@ -6,7 +6,7 @@ import logging
 from typing import Any
 
 from sonya.core.models.agent import Agent
-from sonya.core.client.cache.base import BaseCache
+from sonya.core.cache.base import BaseCache
 from sonya.core.schemas.memory import MemoryPipeline
 from sonya.core.utils.tool_context import ToolContext
 
