@@ -3,7 +3,7 @@
 from textual.app import ComposeResult
 from textual.containers import Vertical
 from textual.widgets import (
-    Input, Select, TextArea, Label, Button
+    Select, TextArea, Label, Button
 )
 
 

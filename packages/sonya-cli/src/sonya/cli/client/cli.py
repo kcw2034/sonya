@@ -96,7 +96,6 @@ def _auth_interactive() -> None:
     print('Sonya Auth - API Key Setup\n')
 
     for name, provider in providers.items():
-        env_key = provider['env_key']
         has_key = check_api_key(provider['prefix'])
         status = 'configured' if has_key else 'not set'
         print(
