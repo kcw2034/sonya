@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import asyncio
 from typing import Any, List, Optional
-from unittest.mock import AsyncMock
 
 import pytest
 
@@ -15,7 +13,6 @@ from langchain_core.language_models.chat_models import (
 from langchain_core.messages import (
     AIMessage,
     BaseMessage,
-    HumanMessage,
 )
 from langchain_core.outputs import ChatGeneration, ChatResult
 

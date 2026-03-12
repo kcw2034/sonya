@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json as _json
-from dataclasses import dataclass
 from typing import Any, AsyncIterator
 
 from sonya.core.client.provider.base import BaseClient
@@ -12,7 +11,6 @@ from sonya.core.schemas.types import ClientConfig
 
 from sonya.extension.schemas.types import (
     _check_langchain,
-    langchain_to_sonya_messages,
     sonya_to_langchain_messages,
 )
 
