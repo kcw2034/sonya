@@ -15,12 +15,17 @@ class Tool:
         description: Human-readable description for the LLM.
         fn: The async callable to execute.
         schema: JSON Schema for the function parameters.
+        requires_approval: If True, the runtime will call
+            ``AgentCallback.on_approval_request`` before executing
+            this tool. Execution is skipped if any callback returns
+            False.  Defaults to False.
     """
 
     name: str
     description: str
     fn: Callable[..., Any]
     schema: dict[str, Any] = field(default_factory=dict)
+    requires_approval: bool = False
 
     def to_anthropic_schema(self) -> dict[str, Any]:
         """Format for Anthropic's tools parameter."""

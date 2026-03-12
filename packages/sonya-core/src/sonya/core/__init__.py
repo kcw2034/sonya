@@ -22,6 +22,7 @@ from sonya.core.exceptions.errors import (
     AgentError,
     GuardrailError,
     MaxRetriesExceededError,
+    ToolApprovalDeniedError,
     ToolError,
 )
 from sonya.core.models.tool import Tool, ToolResult
@@ -70,6 +71,7 @@ __all__ = [
     "AgentError",
     "GuardrailError",
     "MaxRetriesExceededError",
+    "ToolApprovalDeniedError",
     "ToolError",
     # Tool
     "Tool",

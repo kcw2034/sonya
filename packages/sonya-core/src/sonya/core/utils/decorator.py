@@ -14,6 +14,7 @@ from sonya.core.models.tool import Tool
 def tool(
     name: str | None = None,
     description: str | None = None,
+    requires_approval: bool = False,
 ) -> Callable[..., Tool]:
     """Decorator that converts a function into a :class:`Tool`.
 
@@ -23,6 +24,10 @@ def tool(
     Args:
         name: Override the tool name (defaults to ``fn.__name__``).
         description: Override the description (defaults to docstring).
+        requires_approval: If True, the AgentRuntime will call
+            ``AgentCallback.on_approval_request`` before executing
+            this tool. Execution is skipped if any callback returns
+            False.
 
     Returns:
         A decorator that produces a ``Tool`` instance.
@@ -66,6 +71,7 @@ def tool(
             description=_description,
             fn=_fn,
             schema=_schema,
+            requires_approval=requires_approval,
         )
 
     return _decorator

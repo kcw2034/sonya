@@ -79,6 +79,28 @@ class AgentCallback(Protocol):
         """Called when the agent signals a handoff."""
         ...
 
+    async def on_approval_request(
+        self,
+        agent_name: str,
+        tool_name: str,
+        arguments: dict[str, Any],
+    ) -> bool:
+        """Called before executing a tool that requires approval.
+
+        Return True to approve execution, False to deny it.
+        When denied, the runtime feeds an error result back to
+        the LLM instead of executing the tool.
+
+        Args:
+            agent_name: Name of the agent requesting approval.
+            tool_name: Name of the tool to be executed.
+            arguments: Arguments the LLM passed to the tool.
+
+        Returns:
+            True to allow execution, False to deny.
+        """
+        ...
+
 
 @dataclass(frozen=True, slots=True)
 class GuardrailConfig:

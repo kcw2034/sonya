@@ -50,3 +50,23 @@ class GuardrailError(AgentError):
     def __init__(self, agent_name: str, reason: str) -> None:
         self.reason = reason
         super().__init__(agent_name, f'Guardrail: {reason}')
+
+
+class ToolApprovalDeniedError(AgentError):
+    """Raised when a tool execution is blocked by an approval callback.
+
+    This error is available for callers who wish to detect a denial
+    explicitly. The AgentRuntime itself does NOT raise this — it feeds
+    the denial back to the LLM as a tool error result instead.
+
+    Args:
+        agent_name: Name of the agent whose tool was denied.
+        tool_name: Name of the tool that was denied approval.
+    """
+
+    def __init__(self, agent_name: str, tool_name: str) -> None:
+        self.tool_name = tool_name
+        super().__init__(
+            agent_name,
+            f"Tool '{tool_name}' approval denied by callback",
+        )

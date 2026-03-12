@@ -5,11 +5,12 @@ from __future__ import annotations
 import json
 import time
 from collections.abc import AsyncGenerator
-from typing import Any
+from typing import Any, cast
 
 from sonya.core.parsers.adapter import get_adapter
 from sonya.core.models.agent import Agent, AgentResult
 from sonya.core.exceptions.errors import AgentError, GuardrailError
+from sonya.core.models.tool import ToolResult
 from sonya.core.utils.validation import validate_input
 from sonya.core.utils.tool_context import ToolContext
 from sonya.core.models.tool_registry import ToolRegistry
@@ -81,6 +82,39 @@ class AgentRuntime:
         for target in self._agent.handoffs:
             registry.register(_make_handoff_tool(target))
         return registry
+
+    async def _check_approval(
+        self,
+        tool_name: str,
+        arguments: dict[str, Any],
+    ) -> bool:
+        """Check if a tool requiring approval is allowed to run.
+
+        Calls ``on_approval_request`` on all registered callbacks.
+        Returns False if any callback denies; True otherwise.
+        If no callback implements ``on_approval_request``, defaults
+        to True (approve silently).
+
+        Args:
+            tool_name: Name of the tool requesting approval.
+            arguments: Arguments passed to the tool.
+
+        Returns:
+            True if approved, False if denied.
+        """
+        if not self._callbacks:
+            return True
+        for cb in self._callbacks:
+            if not hasattr(cb, 'on_approval_request'):
+                continue
+            approved = await cb.on_approval_request(
+                self._agent.name,
+                tool_name,
+                arguments,
+            )
+            if not approved:
+                return False
+        return True
 
     async def run(
         self,
@@ -296,20 +330,55 @@ class AgentRuntime:
                     f'/{guardrails.max_tool_calls}',
                 )
 
-            # Callback: tool start (per tool)
+            # Approval check: separate approved from denied calls
+            approved_calls: list[
+                tuple[str, str, dict[str, Any] | str]
+            ] = []
+            denied_results: list[ToolResult] = []
+            for tc in parsed.tool_calls:
+                t_obj = registry.get(tc.name)
+                if (
+                    t_obj is not None
+                    and t_obj.requires_approval
+                    and not await self._check_approval(
+                        tc.name, tc.arguments
+                    )
+                ):
+                    denied_results.append(ToolResult(
+                        call_id=tc.id,
+                        name=tc.name,
+                        success=False,
+                        error=(
+                            f"Tool '{tc.name}' execution "
+                            f'denied by user approval'
+                        ),
+                    ))
+                else:
+                    approved_calls.append(
+                        (tc.name, tc.id, tc.arguments)
+                    )
+
+            # Callback: tool start (per approved tool)
             if self._callbacks:
-                for tc in parsed.tool_calls:
+                for name_, _, args_ in approved_calls:
                     for cb in self._callbacks:
                         if hasattr(cb, 'on_tool_start'):
                             await cb.on_tool_start(
                                 agent.name,
-                                tc.name,
-                                tc.arguments,
+                                name_,
+                                cast(
+                                    dict[str, Any], args_
+                                ),
                             )
 
             _t0 = time.monotonic()
-            results = await registry.execute_many(calls)
+            executed = (
+                await registry.execute_many(approved_calls)
+                if approved_calls
+                else []
+            )
             _total_tool_time += time.monotonic() - _t0
+            results = denied_results + executed
 
             # Guardrail: cumulative tool time
             if (
@@ -586,21 +655,56 @@ class AgentRuntime:
                     f'/{_stream_guardrails.max_tool_calls}',
                 )
 
+            # Approval check: separate approved from denied calls
+            _s_approved: list[
+                tuple[str, str, dict[str, Any] | str]
+            ] = []
+            _s_denied: list[ToolResult] = []
+            for tc in parsed.tool_calls:
+                t_obj = registry.get(tc.name)
+                if (
+                    t_obj is not None
+                    and t_obj.requires_approval
+                    and not await self._check_approval(
+                        tc.name, tc.arguments
+                    )
+                ):
+                    _s_denied.append(ToolResult(
+                        call_id=tc.id,
+                        name=tc.name,
+                        success=False,
+                        error=(
+                            f"Tool '{tc.name}' execution "
+                            f'denied by user approval'
+                        ),
+                    ))
+                else:
+                    _s_approved.append(
+                        (tc.name, tc.id, tc.arguments)
+                    )
+
             if self._callbacks:
-                for tc in parsed.tool_calls:
+                for name_, _, args_ in _s_approved:
                     for cb in self._callbacks:
                         if hasattr(cb, 'on_tool_start'):
                             await cb.on_tool_start(
                                 agent.name,
-                                tc.name,
-                                tc.arguments,
+                                name_,
+                                cast(
+                                    dict[str, Any], args_
+                                ),
                             )
 
             _st0 = time.monotonic()
-            results = await registry.execute_many(calls)
+            _s_executed = (
+                await registry.execute_many(_s_approved)
+                if _s_approved
+                else []
+            )
             _stream_total_tool_time += (
                 time.monotonic() - _st0
             )
+            results = _s_denied + _s_executed
 
             # Guardrail: cumulative tool time
             if (
