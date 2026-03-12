@@ -31,10 +31,6 @@ def _default(
         port: Bind port (default 8340, overridden by PORT env var).
     """
     from sonya.gateway import run_server
-    print(
-        f'Starting Sonya Gateway on {host}:{port}\n'
-        f'Open http://{host}:{port} in your browser.'
-    )
     run_server(host=host, port=port)
 
 
@@ -58,9 +54,6 @@ def gateway_start(
         port: Bind port.
     """
     from sonya.gateway import run_server
-    print(
-        f'Starting Sonya Gateway on {host}:{port}'
-    )
     run_server(host=host, port=port)
 
 
