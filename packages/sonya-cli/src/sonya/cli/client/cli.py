@@ -19,6 +19,25 @@ app.command(gateway_app)
 
 
 @app.default
+def _default(
+    *,
+    host: str = '127.0.0.1',
+    port: int = 8340,
+) -> None:
+    """Start the Sonya Gateway server (default).
+
+    Args:
+        host: Bind address.
+        port: Bind port (default 8340, overridden by PORT env var).
+    """
+    from sonya.gateway import run_server
+    print(
+        f'Starting Sonya Gateway on {host}:{port}\n'
+        f'Open http://{host}:{port} in your browser.'
+    )
+    run_server(host=host, port=port)
+
+
 @app.command(name='chat')
 def chat() -> None:
     """Launch the Sonya TUI chat interface."""
