@@ -2,7 +2,7 @@
 
 import pytest
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from httpx import AsyncClient, ASGITransport
 
@@ -229,7 +229,6 @@ async def test_chat_stream_error_yields_sse_error_event(
     mock_session_manager,
 ) -> None:
     """When chat_stream raises a known error, an SSE error event is yielded."""
-    import json as _json
 
     mock_session_manager.get.return_value = {'model': 'test'}
 
