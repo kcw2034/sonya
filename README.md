@@ -22,8 +22,10 @@ packages/
 ├── sonya-core/
 │   └── src/sonya/core/
 │       ├── client/              # Provider clients (Anthropic/OpenAI/Gemini)
-│       │   ├── provider/        # BaseClient, thin wrappers, interceptors
-│       │   └── cache/           # Cache abstractions per provider
+│       │   └── provider/        # BaseClient, thin wrappers, interceptors
+│       ├── cache/               # Cache system
+│       │   ├── base.py          # BaseCache ABC
+│       │   └── provider/        # AnthropicCache, OpenAICache, GeminiCache
 │       ├── models/              # Agent, AgentRuntime, Tool, Runner, Supervisor,
 │       │                        # Session, SessionStore
 │       ├── stores/              # InMemorySessionStore
