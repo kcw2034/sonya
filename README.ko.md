@@ -9,6 +9,7 @@
 | 패키지 | 설명 | 상태 |
 |--------|------|------|
 | `sonya-core` | LLM 클라이언트, 도구 시스템, 에이전트 런타임, 오케스트레이션, 세션 영속성 | ✅ |
+| `sonya-gateway` | 로컬 REST + SSE 게이트웨이 & 웹 채팅 UI (`sonya-gateway`) | ✅ |
 | `sonya-cli` | Textual TUI 채팅 인터페이스 (`sonya chat`) | ✅ |
 | `sonya-pack` | BinContext 추가 전용 저장소 | ✅ |
 | `sonya-pipeline` | 크로스-프로바이더 메시지 정규화, 파이프라인 스테이지, FileSessionStore | ✅ |
@@ -60,7 +61,31 @@ pip install -e ".[gemini]"      # Gemini만
 pip install -e ".[all,dev]"     # 전체 + 개발 도구
 ```
 
-### CLI 설치
+### 게이트웨이 실행 (권장)
+
+게이트웨이는 `http://localhost:8340`에서 웹 채팅 UI를 제공하며
+Anthropic, OpenAI, Gemini 모델을 모두 지원합니다.
+
+```bash
+# 설치
+cd packages/sonya-gateway
+pip install -e "."
+
+# API 키 설정 (하나 이상 필요)
+export ANTHROPIC_API_KEY=sk-ant-...   # 또는 OPENAI_API_KEY / GOOGLE_API_KEY
+
+# 서버 시작
+sonya-gateway
+# → http://localhost:8340 에서 접속
+```
+
+포트를 변경하려면 `PORT` 환경 변수를 사용합니다:
+
+```bash
+PORT=9000 sonya-gateway
+```
+
+### CLI 설치 (대안)
 
 ```bash
 cd packages/sonya-cli

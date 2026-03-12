@@ -9,6 +9,7 @@ runtime, session persistence, and cross-provider memory pipeline.
 | Package | Description | Status |
 |---------|-------------|--------|
 | `sonya-core` | LLM clients, Tool system, Agent Runtime, orchestration, session persistence | ✅ |
+| `sonya-gateway` | Local REST + SSE gateway with web chat UI (`sonya-gateway`) | ✅ |
 | `sonya-cli` | Textual TUI chat interface (`sonya chat`) | ✅ |
 | `sonya-pack` | BinContext append-only storage | ✅ |
 | `sonya-pipeline` | Cross-provider message normalization, pipeline stages, FileSessionStore | ✅ |
@@ -60,7 +61,31 @@ pip install -e ".[gemini]"      # Gemini only
 pip install -e ".[all,dev]"     # all providers + dev tools
 ```
 
-### Install CLI
+### Start the Gateway (Recommended)
+
+The gateway provides a web chat UI at `http://localhost:8340` supporting
+Anthropic, OpenAI, and Gemini models.
+
+```bash
+# Install
+cd packages/sonya-gateway
+pip install -e "."
+
+# Set at least one API key
+export ANTHROPIC_API_KEY=sk-ant-...   # or OPENAI_API_KEY / GOOGLE_API_KEY
+
+# Start the server
+sonya-gateway
+# → open http://localhost:8340
+```
+
+Use the `PORT` environment variable to change the port:
+
+```bash
+PORT=9000 sonya-gateway
+```
+
+### Install CLI (Alternative)
 
 ```bash
 cd packages/sonya-cli
