@@ -16,13 +16,13 @@ from textual.widgets import (
     Select, TextArea, Button,
 )
 
-from sonya.cli.utils.auth import (
+from .auth import (
     check_api_key,
     get_provider_by_model,
     save_api_key,
 )
-from sonya.cli.utils.chat_panel import ChatPanel
-from sonya.cli.utils.settings_panel import SettingsPanel
+from .chat_panel import ChatPanel
+from .settings_panel import SettingsPanel
 from sonya.cli.client.gateway_client import GatewayClient
 
 
