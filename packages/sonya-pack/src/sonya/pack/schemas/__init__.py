@@ -1,6 +1,6 @@
 """sonya.pack.schemas — BinContext metadata schema package."""
 
-from sonya.pack.schemas.schema import (
+from .schema import (
     EpisodicMeta,
     MessageMeta,
     ProceduralMeta,
