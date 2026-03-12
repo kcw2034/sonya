@@ -3,14 +3,48 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 import json
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sonya.core.utils.validation import validate_input
 from sonya.core.models.tool import Tool, ToolResult
 
+if TYPE_CHECKING:
+    from sonya.core.utils.tool_context import ToolContext
+
 _log = logging.getLogger('sonya.tool_registry')
+
+
+def _find_context_params(fn: Any) -> list[str]:
+    """Return parameter names typed as ToolContext in *fn*'s signature.
+
+    Uses a name+module check to avoid a circular import.
+    Result is computed fresh each call; callers may cache it if needed.
+    """
+    try:
+        hints = {}
+        try:
+            from typing import get_type_hints
+            hints = get_type_hints(fn)
+        except Exception:
+            hints = getattr(fn, '__annotations__', {})
+
+        result = []
+        for name, annotation in hints.items():
+            if name == 'return':
+                continue
+            cls = annotation if isinstance(annotation, type) else None
+            if (
+                cls is not None
+                and cls.__name__ == 'ToolContext'
+                and cls.__module__.startswith('sonya.core')
+            ):
+                result.append(name)
+        return result
+    except Exception:
+        return []
 
 
 class ToolRegistry:
@@ -80,13 +114,22 @@ class ToolRegistry:
         name: str,
         call_id: str,
         arguments: dict[str, Any] | str,
+        *,
+        context: 'ToolContext | None' = None,
     ) -> ToolResult:
         """Execute a single tool by name.
+
+        If the tool function declares any parameter typed as
+        :class:`~sonya.core.utils.tool_context.ToolContext`, that
+        parameter is injected with *context* at call time and must
+        not appear in *arguments*.
 
         Args:
             name: The tool name.
             call_id: Provider-assigned tool call id.
             arguments: Dict of arguments or a JSON string.
+            context: Optional :class:`ToolContext` to inject into
+                tool functions that accept it.
 
         Returns:
             A :class:`ToolResult` with the output or error.
@@ -122,13 +165,21 @@ class ToolRegistry:
                 error='; '.join(errors),
             )
 
+        # Inject ToolContext parameters if context is provided.
+        # arguments is guaranteed to be a dict at this point (any
+        # JSON string was parsed above); cast away the union.
+        _args: dict[str, Any] = arguments  # pyright: ignore[reportAssignmentType]
+        if context is not None:
+            for param_name in _find_context_params(tool.fn):
+                _args[param_name] = context
+
         # Execute
         # Intentional broad catch: tool.fn is user-supplied code that
         # may raise any exception. We sandbox the failure into a
         # ToolResult rather than propagating, so the agent loop can
         # continue. The warning log preserves debuggability.
         try:
-            result = await tool.fn(**arguments)
+            result = await tool.fn(**_args)
             return ToolResult(
                 call_id=call_id,
                 name=name,
@@ -155,6 +206,8 @@ class ToolRegistry:
             tuple[str, str, dict[str, Any] | str]
         ],
         max_concurrency: int | None = None,
+        *,
+        context: 'ToolContext | None' = None,
     ) -> list[ToolResult]:
         """Execute multiple tool calls in parallel.
 
@@ -166,13 +219,15 @@ class ToolRegistry:
             calls: List of (name, call_id, arguments) tuples.
             max_concurrency: Maximum simultaneous executions,
                 or None for unlimited.
+            context: Optional :class:`ToolContext` forwarded to
+                each :meth:`execute` call.
 
         Returns:
             List of :class:`ToolResult` in the same order.
         """
         if max_concurrency is None:
             tasks = [
-                self.execute(name, call_id, args)
+                self.execute(name, call_id, args, context=context)
                 for name, call_id, args in calls
             ]
             return list(await asyncio.gather(*tasks))
@@ -185,7 +240,9 @@ class ToolRegistry:
             args: dict[str, Any] | str,
         ) -> ToolResult:
             async with sem:
-                return await self.execute(name, call_id, args)
+                return await self.execute(
+                    name, call_id, args, context=context
+                )
 
         tasks = [
             _limited(name, call_id, args)
@@ -198,11 +255,15 @@ class ToolRegistry:
         calls: list[
             tuple[str, str, dict[str, Any] | str]
         ],
+        *,
+        context: 'ToolContext | None' = None,
     ) -> list[ToolResult]:
         """Execute multiple tool calls one at a time in order.
 
         Args:
             calls: List of (name, call_id, arguments) tuples.
+            context: Optional :class:`ToolContext` forwarded to
+                each :meth:`execute` call.
 
         Returns:
             List of :class:`ToolResult` in the same order.
@@ -210,7 +271,9 @@ class ToolRegistry:
         results: list[ToolResult] = []
         for name, call_id, args in calls:
             results.append(
-                await self.execute(name, call_id, args)
+                await self.execute(
+                    name, call_id, args, context=context
+                )
             )
         return results
 

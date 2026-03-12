@@ -54,6 +54,8 @@ from sonya.core.parsers.adapter import register_adapter, get_adapter
 from sonya.core.client.provider.interceptor import (
     LoggingInterceptor,
 )
+from sonya.core.models.session import Session, SessionStore
+from sonya.core.stores.in_memory import InMemorySessionStore
 
 __version__ = "0.0.1"
 
@@ -111,6 +113,10 @@ __all__ = [
     # Adapter
     "register_adapter",
     "get_adapter",
+    # Session
+    "Session",
+    "SessionStore",
+    "InMemorySessionStore",
     # Logging
     "DebugCallback",
     "LoggingInterceptor",

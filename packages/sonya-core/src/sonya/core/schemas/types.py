@@ -117,6 +117,40 @@ class AgentCallback(Protocol):
         """Called when a tool is dynamically unregistered at runtime."""
         ...
 
+    async def on_llm_start(
+        self,
+        agent_name: str,
+        iteration: int,
+        message_count: int,
+    ) -> None:
+        """Called immediately before each LLM generate() call.
+
+        Args:
+            agent_name: Name of the executing agent.
+            iteration: Zero-based loop iteration index.
+            message_count: Number of messages sent to the LLM.
+        """
+        ...
+
+    async def on_llm_end(
+        self,
+        agent_name: str,
+        iteration: int,
+        input_tokens: int,
+        output_tokens: int,
+        latency_ms: float,
+    ) -> None:
+        """Called immediately after each LLM generate() call.
+
+        Args:
+            agent_name: Name of the executing agent.
+            iteration: Zero-based loop iteration index.
+            input_tokens: Input tokens consumed in this call.
+            output_tokens: Output tokens produced in this call.
+            latency_ms: Round-trip time for the LLM call in ms.
+        """
+        ...
+
 
 @dataclass(frozen=True, slots=True)
 class GuardrailConfig:

@@ -220,19 +220,43 @@ class AgentRuntime:
                             agent.name, _iteration,
                         )
 
+            _formatted_msgs = adapter.format_messages(history)
+            # Callback: LLM call start
+            if self._callbacks:
+                for cb in self._callbacks:
+                    if hasattr(cb, 'on_llm_start'):
+                        await cb.on_llm_start(
+                            agent.name,
+                            _iteration,
+                            len(_formatted_msgs),
+                        )
+
             _t_llm_start = time.monotonic()
             response = await agent.client.generate(
-                adapter.format_messages(history),
+                _formatted_msgs,
                 **gen_kwargs,
             )
-            _total_latency_ms += (
+            _iter_latency_ms = (
                 time.monotonic() - _t_llm_start
             ) * 1000
+            _total_latency_ms += _iter_latency_ms
             _llm_calls += 1
             _inp, _out = extract_usage(response)
             _total_input_tokens += _inp
             _total_output_tokens += _out
             parsed = adapter.parse(response)
+
+            # Callback: LLM call end
+            if self._callbacks:
+                for cb in self._callbacks:
+                    if hasattr(cb, 'on_llm_end'):
+                        await cb.on_llm_end(
+                            agent.name,
+                            _iteration,
+                            _inp,
+                            _out,
+                            _iter_latency_ms,
+                        )
 
             # Check for handoff
             for tc in parsed.tool_calls:
@@ -441,16 +465,19 @@ class AgentRuntime:
             if approved_calls:
                 if not agent.parallel_tool_execution:
                     executed = await registry.execute_sequential(
-                        approved_calls
+                        approved_calls,
+                        context=self._context,
                     )
                 elif guardrails.max_concurrent_tools is not None:
                     executed = await registry.execute_many(
                         approved_calls,
                         max_concurrency=guardrails.max_concurrent_tools,
+                        context=self._context,
                     )
                 else:
                     executed = await registry.execute_many(
-                        approved_calls
+                        approved_calls,
+                        context=self._context,
                     )
             else:
                 executed = []
@@ -610,19 +637,43 @@ class AgentRuntime:
                             agent.name, _iteration,
                         )
 
+            _s_formatted_msgs = adapter.format_messages(history)
+            # Callback: LLM call start
+            if self._callbacks:
+                for cb in self._callbacks:
+                    if hasattr(cb, 'on_llm_start'):
+                        await cb.on_llm_start(
+                            agent.name,
+                            _iteration,
+                            len(_s_formatted_msgs),
+                        )
+
             _st_llm = time.monotonic()
             response = await agent.client.generate(
-                adapter.format_messages(history),
+                _s_formatted_msgs,
                 **gen_kwargs,
             )
-            _s_total_latency_ms += (
+            _s_iter_latency_ms = (
                 time.monotonic() - _st_llm
             ) * 1000
+            _s_total_latency_ms += _s_iter_latency_ms
             _s_llm_calls += 1
             _s_inp, _s_out = extract_usage(response)
             _s_total_input_tokens += _s_inp
             _s_total_output_tokens += _s_out
             parsed = adapter.parse(response)
+
+            # Callback: LLM call end
+            if self._callbacks:
+                for cb in self._callbacks:
+                    if hasattr(cb, 'on_llm_end'):
+                        await cb.on_llm_end(
+                            agent.name,
+                            _iteration,
+                            _s_inp,
+                            _s_out,
+                            _s_iter_latency_ms,
+                        )
 
             # Yield text chunk if present
             if parsed.text:
@@ -833,16 +884,19 @@ class AgentRuntime:
                 _stream_guardrails = agent.guardrails
                 if not agent.parallel_tool_execution:
                     _s_executed = await registry.execute_sequential(
-                        _s_approved
+                        _s_approved,
+                        context=self._context,
                     )
                 elif _stream_guardrails.max_concurrent_tools is not None:
                     _s_executed = await registry.execute_many(
                         _s_approved,
                         max_concurrency=_stream_guardrails.max_concurrent_tools,
+                        context=self._context,
                     )
                 else:
                     _s_executed = await registry.execute_many(
-                        _s_approved
+                        _s_approved,
+                        context=self._context,
                     )
             else:
                 _s_executed = []

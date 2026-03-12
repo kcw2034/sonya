@@ -19,7 +19,9 @@ class MaxRetriesExceededError(Exception):
         self.attempts = attempts
         super().__init__(
             f'All {attempts} attempt(s) failed. '
-            f'Last error: {type(last_error).__name__}: {last_error}'
+            f'Last error: {type(last_error).__name__}: {last_error}. '
+            f'Hint: Check network connectivity or adjust '
+            f'RetryConfig(max_retries, base_delay, backoff_factor).'
         )
 
 
@@ -36,7 +38,15 @@ class AgentError(Exception):
 
     def __init__(self, agent_name: str, message: str) -> None:
         self.agent_name = agent_name
-        super().__init__(f'Agent "{agent_name}" failed: {message}')
+        hint = ''
+        if 'max_iterations' in message:
+            hint = (
+                ' Hint: Increase Agent(max_iterations=…) '
+                'or simplify the task to require fewer steps.'
+            )
+        super().__init__(
+            f'Agent "{agent_name}" failed: {message}{hint}'
+        )
 
 
 class GuardrailError(AgentError):
@@ -47,9 +57,28 @@ class GuardrailError(AgentError):
         reason: Human-readable description of the violated limit.
     """
 
+    _HINTS: dict[str, str] = {
+        'tool call limit': (
+            'Increase GuardrailConfig(max_tool_calls=…) '
+            'or reduce tool usage per iteration.'
+        ),
+        'tool time limit': (
+            'Increase GuardrailConfig(max_tool_time=…) '
+            'or optimize slow tools.'
+        ),
+    }
+
     def __init__(self, agent_name: str, reason: str) -> None:
         self.reason = reason
-        super().__init__(agent_name, f'Guardrail: {reason}')
+        hint = ''
+        reason_lower = reason.lower()
+        for key, suggestion in self._HINTS.items():
+            if key in reason_lower:
+                hint = f' Hint: {suggestion}'
+                break
+        super().__init__(
+            agent_name, f'Guardrail: {reason}{hint}'
+        )
 
 
 class ToolApprovalDeniedError(AgentError):

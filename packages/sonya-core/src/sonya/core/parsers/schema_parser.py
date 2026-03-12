@@ -132,11 +132,28 @@ def _safe_get_hints(fn: Any) -> dict[str, Any]:
     return resolved
 
 
+def _is_tool_context(annotation: Any) -> bool:
+    """Return True if *annotation* is the ToolContext class.
+
+    Uses a string-based check to avoid a circular import between
+    schema_parser and tool_context.
+    """
+    cls = annotation if isinstance(annotation, type) else None
+    if cls is None:
+        return False
+    return (
+        cls.__name__ == 'ToolContext'
+        and cls.__module__.startswith('sonya.core')
+    )
+
+
 def function_to_schema(fn: Any) -> dict[str, Any]:
     """Generate a JSON Schema ``parameters`` object from *fn*'s type hints.
 
-    Skips ``self``, ``cls``, and ``return`` annotations. Parameters without
-    a default value are marked as required.
+    Skips ``self``, ``cls``, ``return``, and any parameter typed as
+    :class:`~sonya.core.utils.tool_context.ToolContext` (context
+    parameters are injected at runtime and must not be exposed to the LLM).
+    Parameters without a default value are marked as required.
     """
     sig = inspect.signature(fn)
     hints = _safe_get_hints(fn)
@@ -148,6 +165,8 @@ def function_to_schema(fn: Any) -> dict[str, Any]:
         if name in ('self', 'cls'):
             continue
         annotation = hints.get(name, str)
+        if _is_tool_context(annotation):
+            continue  # injected at runtime; never exposed to LLM
         properties[name] = _resolve_type(annotation)
 
         if param.default is inspect.Parameter.empty:
