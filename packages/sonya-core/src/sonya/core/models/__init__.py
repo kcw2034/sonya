@@ -9,6 +9,7 @@ from sonya.core.models.runner import (
     RunnerCallback,
     RunnerConfig,
 )
+from sonya.core.models.session import Session, SessionStore
 from sonya.core.models.supervisor import (
     SupervisorConfig,
     SupervisorRuntime,
@@ -24,6 +25,8 @@ __all__ = [
     'Runner',
     'RunnerCallback',
     'RunnerConfig',
+    'Session',
+    'SessionStore',
     'SupervisorConfig',
     'SupervisorRuntime',
 ]
