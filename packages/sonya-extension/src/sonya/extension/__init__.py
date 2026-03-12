@@ -2,15 +2,15 @@
 
 from sonya.core import register_adapter
 
-from sonya.extension.utils.tool_converter import (
+from .utils.tool_converter import (
     to_langchain_tool,
     to_sonya_tool,
 )
-from sonya.extension.client.langchain_client import (
+from .client.langchain_client import (
     LangChainAdapter,
     LangChainClient,
 )
-from sonya.extension.models.langchain_model import (
+from .models.langchain_model import (
     SonyaChatModel,
 )
 
