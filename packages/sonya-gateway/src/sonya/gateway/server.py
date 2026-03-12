@@ -11,13 +11,13 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sse_starlette.sse import EventSourceResponse
 
-from sonya.gateway.schemas import (
+from .schemas import (
     CreateSessionRequest,
     CreateSessionResponse,
     UpdateSessionRequest,
     ChatRequest,
 )
-from sonya.gateway.session import SessionManager
+from .session import SessionManager
 
 app = FastAPI(title='Sonya Gateway')
 session_manager = SessionManager()
