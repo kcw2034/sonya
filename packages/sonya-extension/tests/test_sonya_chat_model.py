@@ -9,7 +9,7 @@ import pytest
 
 from langchain_core.messages import AIMessage, HumanMessage
 
-from sonya.core.client.provider.base import BaseClient
+from sonya.core.client.base import BaseClient
 from sonya.core.parsers.adapter import (
     _ADAPTER_MAP,
     AnthropicAdapter,
