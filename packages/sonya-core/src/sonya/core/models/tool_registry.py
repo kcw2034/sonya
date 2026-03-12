@@ -8,6 +8,7 @@ import logging
 from typing import TYPE_CHECKING, Any, get_type_hints
 
 from sonya.core.utils.validation import validate_input
+
 from .tool import Tool, ToolResult
 
 if TYPE_CHECKING:

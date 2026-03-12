@@ -6,11 +6,12 @@ import dataclasses
 from dataclasses import dataclass, field
 from typing import Any
 
+from sonya.core.utils.tool_context import ToolContext
+from sonya.core.utils.handoff import _instructions_preview
+
 from .agent_runtime import AgentRuntime
 from .agent import Agent, AgentResult
-from sonya.core.utils.tool_context import ToolContext
 from .tool import Tool
-from sonya.core.utils.handoff import _instructions_preview
 
 
 @dataclass(slots=True)

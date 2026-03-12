@@ -12,13 +12,13 @@ from .schemas.types import (
     UsageSummary,
 )
 from .cache.base import BaseCache
-from sonya.core.cache.provider.anthropic import AnthropicCache
-from sonya.core.cache.provider.gemini import GeminiCache
-from sonya.core.cache.provider.openai import OpenAICache
+from .cache.provider.anthropic import AnthropicCache
+from .cache.provider.gemini import GeminiCache
+from .cache.provider.openai import OpenAICache
 from .client.base import BaseClient
-from sonya.core.client.provider.anthropic import AnthropicClient
-from sonya.core.client.provider.google import GeminiClient
-from sonya.core.client.provider.openai import OpenAIClient
+from .client.provider.anthropic import AnthropicClient
+from .client.provider.google import GeminiClient
+from .client.provider.openai import OpenAIClient
 from .exceptions.errors import (
     AgentError,
     GuardrailError,
@@ -51,7 +51,7 @@ from .schemas.memory import (
 )
 from .utils.callback import DebugCallback
 from .parsers.adapter import register_adapter, get_adapter
-from sonya.core.client.provider.interceptor import (
+from .client.provider.interceptor import (
     LoggingInterceptor,
 )
 from .models.session import Session, SessionStore

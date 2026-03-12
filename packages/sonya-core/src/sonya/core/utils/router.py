@@ -8,6 +8,7 @@ from typing import Any
 from sonya.core.models.agent import Agent
 from sonya.core.cache.base import BaseCache
 from sonya.core.schemas.memory import MemoryPipeline
+
 from .tool_context import ToolContext
 
 _log = logging.getLogger('sonya.router')
