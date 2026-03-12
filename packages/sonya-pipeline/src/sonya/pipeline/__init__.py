@@ -5,23 +5,23 @@ Bridges the data flow between sonya-pack (BinContext) and sonya-core
 integration.
 """
 
-from sonya.pipeline.client.bridge import ContextBridge
-from sonya.pipeline.client.memory import DefaultMemoryPipeline
-from sonya.pipeline.client.pipeline import (
+from .client.bridge import ContextBridge
+from .client.memory import DefaultMemoryPipeline
+from .client.pipeline import (
     FilterByRoleStage,
     MetadataInjectionStage,
     Pipeline,
     SystemPromptStage,
     TruncateStage,
 )
-from sonya.pipeline.schemas.types import (
+from .schemas.types import (
     MemoryStore,
     Message,
     PipelineStage,
     SourceAdapter,
 )
-from sonya.pipeline.stores.bridge_store import BridgeStore
-from sonya.pipeline.stores.in_memory import InMemoryStore
+from .stores.bridge_store import BridgeStore
+from .stores.in_memory import InMemoryStore
 
 __all__ = [
     # Bridge

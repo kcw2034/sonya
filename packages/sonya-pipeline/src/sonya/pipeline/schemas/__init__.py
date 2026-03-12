@@ -1,6 +1,6 @@
 """sonya.pipeline.schemas — Pipeline protocol and type definitions."""
 
-from sonya.pipeline.schemas.types import (
+from .types import (
     Message,
     PipelineStage,
     SourceAdapter,

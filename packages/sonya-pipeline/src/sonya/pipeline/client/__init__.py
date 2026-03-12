@@ -1,7 +1,7 @@
 """sonya.pipeline.client — Pipeline engine and context bridge."""
 
-from sonya.pipeline.client.bridge import ContextBridge
-from sonya.pipeline.client.pipeline import (
+from .bridge import ContextBridge
+from .pipeline import (
     FilterByRoleStage,
     MetadataInjectionStage,
     Pipeline,
