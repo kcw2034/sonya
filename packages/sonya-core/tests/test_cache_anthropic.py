@@ -1,5 +1,7 @@
 """AnthropicCache tests — local config storage + cache_control."""
 
+from unittest.mock import MagicMock
+
 import pytest
 
 from sonya.core.schemas.types import (
@@ -10,7 +12,6 @@ from sonya.core.schemas.types import (
 from sonya.core.cache.provider.anthropic import (
     AnthropicCache,
 )
-from unittest.mock import MagicMock
 
 
 @pytest.fixture

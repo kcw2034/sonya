@@ -1,8 +1,9 @@
 """GeminiCache tests with mocked google-genai SDK."""
 
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
 
-from unittest.mock import AsyncMock, MagicMock
 from sonya.core.schemas.types import (
     CacheConfig,
     CachedContent,

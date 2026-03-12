@@ -1,10 +1,11 @@
 """BaseClient and interceptor chain tests."""
 
+from typing import Any, AsyncIterator
+
 import pytest
 
 from sonya.core.schemas.types import ClientConfig
 from sonya.core.client.base import BaseClient
-from typing import Any, AsyncIterator
 
 
 class DummyClient(BaseClient):
@@ -73,8 +74,6 @@ async def test_async_context_manager():
 def test_abstract_method_enforced_on_subclass() -> None:
     """BaseClient subclass that omits _provider_generate must raise
     TypeError at instantiation — not silently succeed and fail later."""
-    import pytest
-
     class IncompleteClient(BaseClient):
         """Subclass that intentionally omits _provider_generate."""
         pass

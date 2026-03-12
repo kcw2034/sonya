@@ -1,5 +1,7 @@
 """공개 API import 테스트."""
 
+from typing import Any, AsyncIterator
+
 
 def test_import_all_clients():
     from sonya.core import AnthropicClient, GeminiClient, OpenAIClient
@@ -50,7 +52,6 @@ def test_get_adapter_returns_correct_adapter():
     from sonya.core.parsers.adapter import (
         AnthropicAdapter,
     )
-    from typing import Any, AsyncIterator
 
     class FakeAnthropicClient(BaseClient):
         def __init__(self) -> None:

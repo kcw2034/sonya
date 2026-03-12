@@ -1,10 +1,11 @@
 """BaseCache ABC tests."""
 
+from typing import Any
+
 import pytest
 
 from sonya.core.schemas.types import CacheConfig, CachedContent, CacheUsage
 from sonya.core.cache.base import BaseCache
-from typing import Any
 
 
 class DummyCache(BaseCache):

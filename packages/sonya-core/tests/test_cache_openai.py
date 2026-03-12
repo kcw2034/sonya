@@ -1,10 +1,11 @@
 """OpenAICache tests — usage-only, no CRUD."""
 
+from unittest.mock import MagicMock
+
 import pytest
 
 from sonya.core.schemas.types import CacheConfig, CacheUsage
 from sonya.core.cache.provider.openai import OpenAICache
-from unittest.mock import MagicMock
 
 
 @pytest.fixture

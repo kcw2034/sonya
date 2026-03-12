@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, get_type_hints
 
 from sonya.core.utils.validation import validate_input
 from .tool import Tool, ToolResult
@@ -25,7 +25,6 @@ def _find_context_params(fn: Any) -> list[str]:
     try:
         hints = {}
         try:
-            from typing import get_type_hints
             hints = get_type_hints(fn)
         except Exception:
             hints = getattr(fn, '__annotations__', {})

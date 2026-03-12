@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from types import SimpleNamespace
 from typing import Any, AsyncIterator
@@ -471,8 +472,6 @@ class TestLoggingInterceptorConcurrency:
         start time (t=50ms) → reports ~50ms instead of ~100ms.
         With ContextVar fix: long_request reports ~100ms correctly.
         """
-        import asyncio
-
         interceptor = LoggingInterceptor()
         latency_records: list[float] = []
 

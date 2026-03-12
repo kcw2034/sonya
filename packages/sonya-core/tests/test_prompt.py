@@ -1,5 +1,8 @@
 """Tests for Prompt and Example data types."""
 
+from unittest.mock import MagicMock
+
+from sonya.core.models.agent import Agent
 from sonya.core.models.prompt import Example, Prompt
 
 
@@ -127,9 +130,6 @@ def test_prompt_render_multiple_examples():
 
 
 def test_agent_accepts_str_instructions():
-    from unittest.mock import MagicMock
-    from sonya.core.models.agent import Agent
-
     client = MagicMock()
     agent = Agent(
         name='test',
@@ -140,9 +140,6 @@ def test_agent_accepts_str_instructions():
 
 
 def test_agent_accepts_prompt_instructions():
-    from unittest.mock import MagicMock
-    from sonya.core.models.agent import Agent
-
     client = MagicMock()
     prompt = Prompt(role='You are a bot.')
     agent = Agent(
