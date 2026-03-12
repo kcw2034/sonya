@@ -6,6 +6,7 @@ from sonya.core.schemas.types import (
     CachedContent,
     CacheUsage,
     ClientConfig,
+    GuardrailConfig,
     Interceptor,
     RetryConfig,
 )
@@ -19,6 +20,7 @@ from sonya.core.client.provider.google import GeminiClient
 from sonya.core.client.provider.openai import OpenAIClient
 from sonya.core.exceptions.errors import (
     AgentError,
+    GuardrailError,
     MaxRetriesExceededError,
     ToolError,
 )
@@ -61,10 +63,12 @@ __all__ = [
     "OpenAIClient",
     "AgentCallback",
     "ClientConfig",
+    "GuardrailConfig",
     "Interceptor",
     "RetryConfig",
     # Errors
     "AgentError",
+    "GuardrailError",
     "MaxRetriesExceededError",
     "ToolError",
     # Tool

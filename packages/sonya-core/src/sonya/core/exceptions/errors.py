@@ -37,3 +37,16 @@ class AgentError(Exception):
     def __init__(self, agent_name: str, message: str) -> None:
         self.agent_name = agent_name
         super().__init__(f'Agent "{agent_name}" failed: {message}')
+
+
+class GuardrailError(AgentError):
+    """Raised when an agent exceeds a configured guardrail limit.
+
+    Args:
+        agent_name: Name of the agent that breached the limit.
+        reason: Human-readable description of the violated limit.
+    """
+
+    def __init__(self, agent_name: str, reason: str) -> None:
+        self.reason = reason
+        super().__init__(agent_name, f'Guardrail: {reason}')

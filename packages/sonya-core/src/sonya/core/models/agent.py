@@ -8,7 +8,7 @@ from typing import Any
 from sonya.core.client.provider.base import BaseClient
 from sonya.core.models.prompt import Prompt
 from sonya.core.models.tool import Tool
-from sonya.core.schemas.types import AgentCallback
+from sonya.core.schemas.types import AgentCallback, GuardrailConfig
 
 
 @dataclass(slots=True)
@@ -33,6 +33,9 @@ class Agent:
     max_iterations: int = 10
     callbacks: list[AgentCallback] = field(
         default_factory=list
+    )
+    guardrails: GuardrailConfig = field(
+        default_factory=GuardrailConfig
     )
 
 

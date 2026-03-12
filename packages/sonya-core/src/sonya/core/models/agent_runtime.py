@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import time
 from collections.abc import AsyncGenerator
 from typing import Any
 
 from sonya.core.parsers.adapter import get_adapter
 from sonya.core.models.agent import Agent, AgentResult
-from sonya.core.exceptions.errors import AgentError
+from sonya.core.exceptions.errors import AgentError, GuardrailError
 from sonya.core.utils.tool_context import ToolContext
 from sonya.core.models.tool_registry import ToolRegistry
 from sonya.core.utils.handoff import _HANDOFF_PREFIX
@@ -126,6 +127,10 @@ class AgentRuntime:
                 {'role': 'system', 'content': system_message}
             ] + history
 
+        guardrails = agent.guardrails
+        _total_tool_calls = 0
+        _total_tool_time = 0.0
+
         for _iteration in range(agent.max_iterations):
             # Callback: iteration start
             if self._callbacks:
@@ -198,6 +203,20 @@ class AgentRuntime:
                 for tc in parsed.tool_calls
             ]
 
+            # Guardrail: tool call count
+            _total_tool_calls += len(calls)
+            if (
+                guardrails.max_tool_calls is not None
+                and _total_tool_calls
+                > guardrails.max_tool_calls
+            ):
+                raise GuardrailError(
+                    agent.name,
+                    f'tool call limit exceeded: '
+                    f'{_total_tool_calls}'
+                    f'/{guardrails.max_tool_calls}',
+                )
+
             # Callback: tool start (per tool)
             if self._callbacks:
                 for tc in parsed.tool_calls:
@@ -209,7 +228,22 @@ class AgentRuntime:
                                 tc.arguments,
                             )
 
+            _t0 = time.monotonic()
             results = await registry.execute_many(calls)
+            _total_tool_time += time.monotonic() - _t0
+
+            # Guardrail: cumulative tool time
+            if (
+                guardrails.max_tool_time is not None
+                and _total_tool_time
+                > guardrails.max_tool_time
+            ):
+                raise GuardrailError(
+                    agent.name,
+                    f'tool time limit exceeded: '
+                    f'{_total_tool_time:.2f}s'
+                    f'/{guardrails.max_tool_time}s',
+                )
 
             # Callback: tool end (per tool)
             if self._callbacks:
@@ -322,6 +356,10 @@ class AgentRuntime:
                 {'role': 'system', 'content': system_message}
             ] + history
 
+        _stream_total_tool_calls = 0
+        _stream_total_tool_time = 0.0
+        _stream_guardrails = agent.guardrails
+
         for _iteration in range(agent.max_iterations):
             if self._callbacks:
                 for cb in self._callbacks:
@@ -395,6 +433,20 @@ class AgentRuntime:
                 for tc in parsed.tool_calls
             ]
 
+            # Guardrail: tool call count
+            _stream_total_tool_calls += len(calls)
+            if (
+                _stream_guardrails.max_tool_calls is not None
+                and _stream_total_tool_calls
+                > _stream_guardrails.max_tool_calls
+            ):
+                raise GuardrailError(
+                    agent.name,
+                    f'tool call limit exceeded: '
+                    f'{_stream_total_tool_calls}'
+                    f'/{_stream_guardrails.max_tool_calls}',
+                )
+
             if self._callbacks:
                 for tc in parsed.tool_calls:
                     for cb in self._callbacks:
@@ -405,7 +457,24 @@ class AgentRuntime:
                                 tc.arguments,
                             )
 
+            _st0 = time.monotonic()
             results = await registry.execute_many(calls)
+            _stream_total_tool_time += (
+                time.monotonic() - _st0
+            )
+
+            # Guardrail: cumulative tool time
+            if (
+                _stream_guardrails.max_tool_time is not None
+                and _stream_total_tool_time
+                > _stream_guardrails.max_tool_time
+            ):
+                raise GuardrailError(
+                    agent.name,
+                    f'tool time limit exceeded: '
+                    f'{_stream_total_tool_time:.2f}s'
+                    f'/{_stream_guardrails.max_tool_time}s',
+                )
 
             if self._callbacks:
                 for r in results:

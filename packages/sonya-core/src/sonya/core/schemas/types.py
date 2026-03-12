@@ -81,6 +81,25 @@ class AgentCallback(Protocol):
 
 
 @dataclass(frozen=True, slots=True)
+class GuardrailConfig:
+    """Guardrail limits for an agent's tool execution loop.
+
+    All fields default to ``None``, meaning no limit is enforced.
+    Set a field to a positive value to activate that guardrail.
+
+    Args:
+        max_tool_calls: Maximum total tool calls across all iterations.
+            Exceeding this raises :class:`GuardrailError`.
+        max_tool_time: Maximum cumulative seconds spent executing tools.
+            Checked after each :meth:`ToolRegistry.execute_many` batch.
+            Exceeding this raises :class:`GuardrailError`.
+    """
+
+    max_tool_calls: int | None = None
+    max_tool_time: float | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class RetryConfig:
     """Retry and exponential-backoff settings for provider calls.
 
