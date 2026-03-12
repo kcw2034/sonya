@@ -101,6 +101,22 @@ class AgentCallback(Protocol):
         """
         ...
 
+    async def on_tool_register(
+        self,
+        agent_name: str,
+        tool_name: str,
+    ) -> None:
+        """Called when a tool is dynamically registered at runtime."""
+        ...
+
+    async def on_tool_unregister(
+        self,
+        agent_name: str,
+        tool_name: str,
+    ) -> None:
+        """Called when a tool is dynamically unregistered at runtime."""
+        ...
+
 
 @dataclass(frozen=True, slots=True)
 class GuardrailConfig:

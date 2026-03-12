@@ -67,10 +67,16 @@ class AgentRuntime:
         context: ToolContext | None = None,
     ) -> None:
         self._agent = agent
-        self._context = context or ToolContext()
         self._adapter = get_adapter(agent.client)
         self._registry = self._build_registry()
         self._callbacks = agent.callbacks
+        # Link the registry to the context so tools can call
+        # ctx.add_tool() / ctx.remove_tool() during execution.
+        if context is not None:
+            context._registry = self._registry
+            self._context = context
+        else:
+            self._context = ToolContext(registry=self._registry)
 
     def _build_registry(self) -> ToolRegistry:
         """Create a registry containing agent tools and handoff tools."""
@@ -151,28 +157,27 @@ class AgentRuntime:
                 **(prompt_context or {})
             )
 
-        # Build generate kwargs via adapter
-        tools = registry.tools
-        schemas: list[dict[str, Any]] | None = None
-        if tools:
-            provider_name = type(agent.client).__name__
-            provider = _PROVIDER_MAP.get(
-                provider_name, 'openai'
-            )
-            schemas = registry.schemas(provider)
+        # Determine provider format once (class name is stable).
+        provider_name = type(agent.client).__name__
+        _provider = _PROVIDER_MAP.get(provider_name, 'openai')
 
-        gen_kwargs = adapter.format_generate_kwargs(
+        # Inject system message into history once before the loop.
+        # Use initial schemas for the first format_generate_kwargs
+        # call solely to extract the system message.
+        _init_schemas: list[dict[str, Any]] | None = None
+        if registry.tools:
+            _init_schemas = registry.schemas(_provider)
+        _init_kwargs = adapter.format_generate_kwargs(
             instructions,
-            schemas,
+            _init_schemas,
             output_schema=agent.output_schema,
         )
-
         # Extract system message for OpenAI-style injection.
         # Strip any pre-existing system messages from history to
         # ensure the agent's instructions are the sole system
         # message and avoid duplicates when history is passed
         # from a previous agent (e.g. via Runner handoff).
-        system_message = gen_kwargs.pop(
+        system_message = _init_kwargs.pop(
             '_system_message', None
         )
         if system_message:
@@ -194,6 +199,19 @@ class AgentRuntime:
         _total_latency_ms = 0.0
 
         for _iteration in range(agent.max_iterations):
+            # Regenerate schemas from live registry so any tools
+            # added or removed since the last iteration are reflected.
+            _current_schemas: list[dict[str, Any]] | None = None
+            if registry.tools:
+                _current_schemas = registry.schemas(_provider)
+            gen_kwargs = adapter.format_generate_kwargs(
+                instructions,
+                _current_schemas,
+                output_schema=agent.output_schema,
+            )
+            # System message is already in history; discard the key.
+            gen_kwargs.pop('_system_message', None)
+
             # Callback: iteration start
             if self._callbacks:
                 for cb in self._callbacks:
@@ -538,22 +556,21 @@ class AgentRuntime:
                 **(prompt_context or {})
             )
 
-        tools = registry.tools
-        schemas: list[dict[str, Any]] | None = None
-        if tools:
-            provider_name = type(agent.client).__name__
-            provider = _PROVIDER_MAP.get(
-                provider_name, 'openai'
-            )
-            schemas = registry.schemas(provider)
-
-        gen_kwargs = adapter.format_generate_kwargs(
-            instructions,
-            schemas,
-            output_schema=agent.output_schema,
+        _s_provider_name = type(agent.client).__name__
+        _s_provider = _PROVIDER_MAP.get(
+            _s_provider_name, 'openai'
         )
 
-        system_message = gen_kwargs.pop(
+        # Inject system message into history once before the loop.
+        _s_init_schemas: list[dict[str, Any]] | None = None
+        if registry.tools:
+            _s_init_schemas = registry.schemas(_s_provider)
+        _s_init_kwargs = adapter.format_generate_kwargs(
+            instructions,
+            _s_init_schemas,
+            output_schema=agent.output_schema,
+        )
+        system_message = _s_init_kwargs.pop(
             '_system_message', None
         )
         if system_message:
@@ -575,6 +592,17 @@ class AgentRuntime:
         _s_total_latency_ms = 0.0
 
         for _iteration in range(agent.max_iterations):
+            # Regenerate schemas from live registry each iteration.
+            _s_current_schemas: list[dict[str, Any]] | None = None
+            if registry.tools:
+                _s_current_schemas = registry.schemas(_s_provider)
+            gen_kwargs = adapter.format_generate_kwargs(
+                instructions,
+                _s_current_schemas,
+                output_schema=agent.output_schema,
+            )
+            gen_kwargs.pop('_system_message', None)
+
             if self._callbacks:
                 for cb in self._callbacks:
                     if hasattr(cb, 'on_iteration_start'):

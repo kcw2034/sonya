@@ -31,6 +31,41 @@ class ToolRegistry:
             )
         self._tools[tool.name] = tool
 
+    def register_many(self, tools: list[Tool]) -> None:
+        """Register multiple tools at once.
+
+        Args:
+            tools: Tools to register in order.
+
+        Raises:
+            ValueError: If any tool name is already registered.
+        """
+        for t in tools:
+            self.register(t)
+
+    def unregister(self, name: str) -> None:
+        """Remove a registered tool by name.
+
+        Args:
+            name: The name of the tool to remove.
+
+        Raises:
+            ValueError: If no tool with *name* is registered.
+        """
+        if name not in self._tools:
+            raise ValueError(
+                f"Tool '{name}' is not registered"
+            )
+        del self._tools[name]
+
+    def has(self, name: str) -> bool:
+        """Return True if a tool with *name* is registered."""
+        return name in self._tools
+
+    def clear(self) -> None:
+        """Remove all registered tools."""
+        self._tools.clear()
+
     def get(self, name: str) -> Tool | None:
         """Return the tool with *name*, or None if not found."""
         return self._tools.get(name)
