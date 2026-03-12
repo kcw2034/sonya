@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json as _json
 from typing import Any
 
 from sonya.core.schemas.memory import NormalizedMessage
@@ -14,8 +15,8 @@ class DefaultMemoryPipeline:
     NormalizedMessage and reconstructs them back.
     Optionally persists sessions via a MemoryStore.
 
-    First iteration supports text content only.
-    tool_calls and tool_results are not yet handled.
+    Supports text content, tool_calls, and tool_results
+    for Anthropic, OpenAI, and Gemini providers.
 
     Args:
         store: Optional MemoryStore for session persistence.
@@ -67,24 +68,43 @@ class DefaultMemoryPipeline:
         """Normalize Anthropic-format messages.
 
         Anthropic content can be a string or a list of
-        content blocks. Extracts text from type=='text' blocks.
+        content blocks. Extracts text from type=='text' blocks,
+        tool_calls from type=='tool_use' blocks, and
+        tool_results from type=='tool_result' blocks.
         """
         result: list[NormalizedMessage] = []
         for msg in history:
             role = msg.get('role', 'user')
             content = msg.get('content', '')
+            tool_calls: list[dict[str, Any]] = []
+            tool_results: list[dict[str, Any]] = []
 
             if isinstance(content, list):
-                texts = [
-                    block.get('text', '')
-                    for block in content
-                    if block.get('type') == 'text'
-                ]
+                texts: list[str] = []
+                for block in content:
+                    btype = block.get('type')
+                    if btype == 'text':
+                        texts.append(block.get('text', ''))
+                    elif btype == 'tool_use':
+                        tool_calls.append({
+                            'id': block.get('id', ''),
+                            'name': block.get('name', ''),
+                            'arguments': block.get('input', {}),
+                        })
+                    elif btype == 'tool_result':
+                        tool_results.append({
+                            'call_id': block.get('tool_use_id', ''),
+                            'output': block.get('content', ''),
+                            'name': block.get('name', ''),
+                        })
                 content = ''.join(texts)
 
-            result.append(
-                NormalizedMessage(role=role, content=content)
-            )
+            result.append(NormalizedMessage(
+                role=role,
+                content=content,
+                tool_calls=tool_calls,
+                tool_results=tool_results,
+            ))
         return result
 
     def _normalize_openai(
@@ -93,15 +113,47 @@ class DefaultMemoryPipeline:
     ) -> list[NormalizedMessage]:
         """Normalize OpenAI-format messages.
 
-        OpenAI content is a plain string.
+        OpenAI content is a plain string. Tool calls appear
+        in msg['tool_calls']. Tool results have role=='tool'.
         """
-        return [
-            NormalizedMessage(
-                role=msg.get('role', 'user'),
-                content=msg.get('content', ''),
-            )
-            for msg in history
-        ]
+        result: list[NormalizedMessage] = []
+        for msg in history:
+            role = msg.get('role', 'user')
+            raw_content = msg.get('content') or ''
+            content = str(raw_content) if raw_content else ''
+            tool_calls: list[dict[str, Any]] = []
+            tool_results: list[dict[str, Any]] = []
+
+            if role == 'tool':
+                # OpenAI tool result is a standalone message
+                tool_results.append({
+                    'call_id': msg.get('tool_call_id', ''),
+                    'output': content,
+                    'name': msg.get('name', ''),
+                })
+            else:
+                raw_tcs = msg.get('tool_calls') or []
+                for tc in raw_tcs:
+                    func = tc.get('function', {})
+                    args = func.get('arguments', {})
+                    if isinstance(args, str):
+                        try:
+                            args = _json.loads(args)
+                        except (_json.JSONDecodeError, ValueError):
+                            args = {}
+                    tool_calls.append({
+                        'id': tc.get('id', ''),
+                        'name': func.get('name', ''),
+                        'arguments': args,
+                    })
+
+            result.append(NormalizedMessage(
+                role=role,
+                content=content,
+                tool_calls=tool_calls,
+                tool_results=tool_results,
+            ))
+        return result
 
     def _normalize_gemini(
         self,
@@ -109,8 +161,10 @@ class DefaultMemoryPipeline:
     ) -> list[NormalizedMessage]:
         """Normalize Gemini-format messages.
 
-        Gemini uses 'parts' list with 'text' fields.
-        Role 'model' is mapped to 'assistant'.
+        Gemini uses 'parts' list with 'text', 'function_call',
+        or 'function_response' fields. Role 'model' is mapped
+        to 'assistant'. Synthetic IDs are assigned to tool calls
+        since Gemini has no native call IDs.
         """
         result: list[NormalizedMessage] = []
         for msg in history:
@@ -119,16 +173,35 @@ class DefaultMemoryPipeline:
                 role = 'assistant'
 
             parts = msg.get('parts', [])
-            texts = [
-                p.get('text', '')
-                for p in parts
-                if 'text' in p
-            ]
-            content = ''.join(texts)
+            texts: list[str] = []
+            tool_calls: list[dict[str, Any]] = []
+            tool_results: list[dict[str, Any]] = []
 
-            result.append(
-                NormalizedMessage(role=role, content=content)
-            )
+            for i, part in enumerate(parts):
+                if 'text' in part:
+                    texts.append(part.get('text', ''))
+                elif 'function_call' in part:
+                    fc = part['function_call']
+                    tool_calls.append({
+                        'id': f'gemini_call_{i}',
+                        'name': fc.get('name', ''),
+                        'arguments': dict(fc.get('args', {})),
+                    })
+                elif 'function_response' in part:
+                    fr = part['function_response']
+                    response = fr.get('response', {})
+                    tool_results.append({
+                        'call_id': f'gemini_call_{i}',
+                        'name': fr.get('name', ''),
+                        'output': response.get('result', ''),
+                    })
+
+            result.append(NormalizedMessage(
+                role=role,
+                content=''.join(texts),
+                tool_calls=tool_calls,
+                tool_results=tool_results,
+            ))
         return result
 
     def _normalize_generic(
@@ -178,17 +251,45 @@ class DefaultMemoryPipeline:
     ) -> list[dict[str, Any]]:
         """Reconstruct to Anthropic message format.
 
-        Content is wrapped in a text content block list.
+        Text content is wrapped in a text content block.
+        tool_calls become tool_use blocks.
+        tool_results become tool_result blocks in user messages.
         """
-        return [
-            {
-                'role': msg.role,
-                'content': [
+        result: list[dict[str, Any]] = []
+        for msg in messages:
+            content_blocks: list[dict[str, Any]] = []
+
+            if msg.content:
+                content_blocks.append(
                     {'type': 'text', 'text': msg.content}
-                ],
-            }
-            for msg in messages
-        ]
+                )
+
+            for tc in msg.tool_calls:
+                content_blocks.append({
+                    'type': 'tool_use',
+                    'id': tc.get('id', ''),
+                    'name': tc.get('name', ''),
+                    'input': tc.get('arguments', {}),
+                })
+
+            for tr in msg.tool_results:
+                content_blocks.append({
+                    'type': 'tool_result',
+                    'tool_use_id': tr.get('call_id', ''),
+                    'content': tr.get('output', ''),
+                })
+
+            # If no blocks at all, use empty text block
+            if not content_blocks:
+                content_blocks.append(
+                    {'type': 'text', 'text': ''}
+                )
+
+            result.append({
+                'role': msg.role,
+                'content': content_blocks,
+            })
+        return result
 
     def _reconstruct_openai(
         self,
@@ -196,12 +297,41 @@ class DefaultMemoryPipeline:
     ) -> list[dict[str, Any]]:
         """Reconstruct to OpenAI message format.
 
-        Content is a plain string.
+        tool_calls are added to assistant messages.
+        tool_results become standalone role='tool' messages.
         """
-        return [
-            {'role': msg.role, 'content': msg.content}
-            for msg in messages
-        ]
+        result: list[dict[str, Any]] = []
+        for msg in messages:
+            # Tool result messages
+            if msg.tool_results:
+                for tr in msg.tool_results:
+                    result.append({
+                        'role': 'tool',
+                        'tool_call_id': tr.get('call_id', ''),
+                        'content': tr.get('output', ''),
+                    })
+                continue
+
+            out: dict[str, Any] = {
+                'role': msg.role,
+                'content': msg.content,
+            }
+            if msg.tool_calls:
+                out['tool_calls'] = [
+                    {
+                        'id': tc.get('id', ''),
+                        'type': 'function',
+                        'function': {
+                            'name': tc.get('name', ''),
+                            'arguments': _json.dumps(
+                                tc.get('arguments', {})
+                            ),
+                        },
+                    }
+                    for tc in msg.tool_calls
+                ]
+            result.append(out)
+        return result
 
     def _reconstruct_gemini(
         self,
@@ -211,6 +341,8 @@ class DefaultMemoryPipeline:
 
         Uses parts list. Role 'assistant' mapped to 'model',
         'system' mapped to 'user'.
+        function_call and function_response parts added for
+        tool_calls and tool_results respectively.
         """
         result: list[dict[str, Any]] = []
         for msg in messages:
@@ -220,10 +352,33 @@ class DefaultMemoryPipeline:
             elif role == 'system':
                 role = 'user'
 
-            result.append({
-                'role': role,
-                'parts': [{'text': msg.content}],
-            })
+            parts: list[dict[str, Any]] = []
+
+            if msg.content:
+                parts.append({'text': msg.content})
+
+            for tc in msg.tool_calls:
+                parts.append({
+                    'function_call': {
+                        'name': tc.get('name', ''),
+                        'args': tc.get('arguments', {}),
+                    }
+                })
+
+            for tr in msg.tool_results:
+                parts.append({
+                    'function_response': {
+                        'name': tr.get('name', ''),
+                        'response': {
+                            'result': tr.get('output', ''),
+                        },
+                    }
+                })
+
+            if not parts:
+                parts.append({'text': ''})
+
+            result.append({'role': role, 'parts': parts})
         return result
 
     def _reconstruct_generic(

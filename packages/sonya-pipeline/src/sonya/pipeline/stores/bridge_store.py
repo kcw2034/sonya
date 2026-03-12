@@ -18,8 +18,9 @@ class BridgeStore:
     process restarts.
 
     Note:
-        First iteration stores role + content only.
-        tool_calls/tool_results are not persisted.
+        Stores role, content, tool_calls, and tool_results.
+        Old records without tool_calls/tool_results keys load
+        with empty lists (backward-compatible).
 
     Args:
         bridge: ContextBridge instance to delegate to.
@@ -53,7 +54,12 @@ class BridgeStore:
             messages: Messages to save.
         """
         raw = [
-            {'role': m.role, 'content': m.content}
+            {
+                'role': m.role,
+                'content': m.content,
+                'tool_calls': m.tool_calls,
+                'tool_results': m.tool_results,
+            }
             for m in messages
         ]
         self._bridge.save_messages(session_id, raw)
@@ -79,6 +85,8 @@ class BridgeStore:
             NormalizedMessage(
                 role=m.get('role', 'user'),
                 content=m.get('content', ''),
+                tool_calls=m.get('tool_calls', []),
+                tool_results=m.get('tool_results', []),
             )
             for m in raw
         ]
