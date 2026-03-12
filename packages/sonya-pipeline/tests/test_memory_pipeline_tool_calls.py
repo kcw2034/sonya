@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any
-
 
 from sonya.pipeline.client.memory import DefaultMemoryPipeline
 from sonya.core.schemas.memory import NormalizedMessage
@@ -112,7 +112,6 @@ def test_normalize_anthropic_mixed_content() -> None:
 
 def test_normalize_openai_tool_calls() -> None:
     """OpenAI tool_calls array is extracted into tool_calls."""
-    import json
     history: list[dict[str, Any]] = [
         {
             'role': 'assistant',
@@ -310,7 +309,6 @@ def test_reconstruct_anthropic_tool_result() -> None:
 
 def test_reconstruct_openai_tool_calls() -> None:
     """NormalizedMessage with tool_calls reconstructs OpenAI tool_calls."""
-    import json
     msgs = [
         NormalizedMessage(
             role='assistant',
@@ -434,7 +432,6 @@ def test_roundtrip_anthropic() -> None:
 
 def test_roundtrip_openai() -> None:
     """OpenAI tool_calls → normalize → reconstruct is lossless."""
-    import json
     history: list[dict[str, Any]] = [
         {
             'role': 'assistant',
@@ -491,7 +488,6 @@ def test_cross_provider_anthropic_to_openai() -> None:
 
 def test_cross_provider_openai_to_anthropic() -> None:
     """OpenAI tool_calls → normalize → reconstruct as Anthropic."""
-    import json
     history: list[dict[str, Any]] = [
         {
             'role': 'assistant',
@@ -518,7 +514,6 @@ def test_cross_provider_openai_to_anthropic() -> None:
 
 def test_cross_provider_openai_to_gemini() -> None:
     """OpenAI tool_calls → normalize → reconstruct as Gemini."""
-    import json
     history: list[dict[str, Any]] = [
         {
             'role': 'assistant',
