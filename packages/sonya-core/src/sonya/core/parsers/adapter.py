@@ -67,12 +67,14 @@ class ResponseAdapter(Protocol):
         self,
         instructions: str,
         tool_schemas: list[dict[str, Any]] | None,
+        output_schema: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Build provider-specific kwargs for generate().
 
         Args:
             instructions: System prompt for the agent.
             tool_schemas: Tool schemas in the provider's format, or None.
+            output_schema: JSON Schema dict for structured output, or None.
 
         Returns:
             Dict of kwargs to pass to ``client.generate()``.
@@ -142,11 +144,27 @@ class AnthropicAdapter:
         self,
         instructions: str,
         tool_schemas: list[dict[str, Any]] | None,
+        output_schema: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """Build Anthropic-specific generate kwargs."""
+        """Build Anthropic-specific generate kwargs.
+
+        When *output_schema* is provided a JSON formatting instruction
+        is appended to the system prompt (Anthropic has no native
+        JSON-schema mode; prompt engineering is the official approach).
+        """
+        import json as _json
+
         kwargs: dict[str, Any] = {}
-        if instructions:
-            kwargs['system'] = instructions
+        system = instructions
+        if output_schema is not None:
+            hint = (
+                '\n\nRespond with valid JSON that conforms to '
+                'this schema:\n'
+                + _json.dumps(output_schema, indent=2)
+            )
+            system = system + hint if system else hint
+        if system:
+            kwargs['system'] = system
         if tool_schemas:
             kwargs['tools'] = tool_schemas
         return kwargs
@@ -237,17 +255,29 @@ class OpenAIAdapter:
         self,
         instructions: str,
         tool_schemas: list[dict[str, Any]] | None,
+        output_schema: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Build OpenAI-specific generate kwargs.
 
         Stores instructions under ``_system_message`` for
         the runtime to prepend as a system message.
+        When *output_schema* is provided, adds
+        ``response_format`` with ``json_schema`` type.
         """
         kwargs: dict[str, Any] = {}
         if instructions:
             kwargs['_system_message'] = instructions
         if tool_schemas:
             kwargs['tools'] = tool_schemas
+        if output_schema is not None:
+            kwargs['response_format'] = {
+                'type': 'json_schema',
+                'json_schema': {
+                    'name': 'response',
+                    'strict': True,
+                    'schema': output_schema,
+                },
+            }
         return kwargs
 
     def format_assistant_message(
@@ -391,11 +421,14 @@ class GeminiAdapter:
         self,
         instructions: str,
         tool_schemas: list[dict[str, Any]] | None,
+        output_schema: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Build Gemini-specific generate kwargs.
 
         Wraps tool schemas in ``function_declarations`` and maps
         system prompt to ``system_instruction``.
+        When *output_schema* is provided, adds
+        ``response_mime_type`` and ``response_schema``.
         """
         kwargs: dict[str, Any] = {}
         if instructions:
@@ -405,6 +438,9 @@ class GeminiAdapter:
             kwargs['tools'] = [
                 {'function_declarations': tool_schemas}
             ]
+        if output_schema is not None:
+            kwargs['response_mime_type'] = 'application/json'
+            kwargs['response_schema'] = output_schema
         return kwargs
 
     def format_assistant_message(

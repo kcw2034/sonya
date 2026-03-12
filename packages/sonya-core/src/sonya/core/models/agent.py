@@ -37,6 +37,7 @@ class Agent:
     guardrails: GuardrailConfig = field(
         default_factory=GuardrailConfig
     )
+    output_schema: dict[str, Any] | None = None
 
 
 @dataclass(slots=True)
@@ -58,3 +59,4 @@ class AgentResult:
     )
     handoff_to: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
+    output: dict[str, Any] | None = None

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import time
 from collections.abc import AsyncGenerator
 from typing import Any
@@ -9,6 +10,7 @@ from typing import Any
 from sonya.core.parsers.adapter import get_adapter
 from sonya.core.models.agent import Agent, AgentResult
 from sonya.core.exceptions.errors import AgentError, GuardrailError
+from sonya.core.utils.validation import validate_input
 from sonya.core.utils.tool_context import ToolContext
 from sonya.core.models.tool_registry import ToolRegistry
 from sonya.core.utils.handoff import _HANDOFF_PREFIX
@@ -21,6 +23,23 @@ _PROVIDER_MAP: dict[str, str] = {
     'OpenAIClient': 'openai',
     'GeminiClient': 'gemini',
 }
+
+
+def _try_parse_json(
+    text: str,
+) -> dict[str, Any] | None:
+    """Attempt to parse *text* as a JSON object.
+
+    Returns the parsed dict on success, or None if parsing fails
+    or the result is not a dict.
+    """
+    try:
+        result = json.loads(text.strip())
+        if isinstance(result, dict):
+            return result
+    except (json.JSONDecodeError, TypeError, ValueError):
+        pass
+    return None
 
 
 class AgentRuntime:
@@ -107,7 +126,9 @@ class AgentRuntime:
             schemas = registry.schemas(provider)
 
         gen_kwargs = adapter.format_generate_kwargs(
-            instructions, schemas
+            instructions,
+            schemas,
+            output_schema=agent.output_schema,
         )
 
         # Extract system message for OpenAI-style injection.
@@ -175,6 +196,64 @@ class AgentRuntime:
 
             # No tool calls — final response
             if not parsed.tool_calls:
+                # Structured output: parse + validate JSON
+                if agent.output_schema is not None:
+                    parsed_out = _try_parse_json(parsed.text)
+                    if parsed_out is None:
+                        # Not valid JSON — ask model to fix
+                        history.append(
+                            adapter.format_assistant_message(
+                                response
+                            )
+                        )
+                        history.append({
+                            'role': 'user',
+                            'content': (
+                                'Your response must be valid '
+                                'JSON matching the required '
+                                'schema. Please try again.'
+                            ),
+                        })
+                        continue
+                    errors = validate_input(
+                        parsed_out, agent.output_schema
+                    )
+                    if errors:
+                        history.append(
+                            adapter.format_assistant_message(
+                                response
+                            )
+                        )
+                        history.append({
+                            'role': 'user',
+                            'content': (
+                                f'JSON validation errors: '
+                                f'{errors}. '
+                                f'Fix and respond again.'
+                            ),
+                        })
+                        continue
+                    history.append(
+                        adapter.format_assistant_message(
+                            response
+                        )
+                    )
+                    if self._callbacks:
+                        for cb in self._callbacks:
+                            if hasattr(
+                                cb, 'on_iteration_end'
+                            ):
+                                await cb.on_iteration_end(
+                                    agent.name,
+                                    _iteration,
+                                )
+                    return AgentResult(
+                        agent_name=agent.name,
+                        text=parsed.text,
+                        history=history,
+                        output=parsed_out,
+                    )
+
                 history.append(
                     adapter.format_assistant_message(
                         response
@@ -341,7 +420,9 @@ class AgentRuntime:
             schemas = registry.schemas(provider)
 
         gen_kwargs = adapter.format_generate_kwargs(
-            instructions, schemas
+            instructions,
+            schemas,
+            output_schema=agent.output_schema,
         )
 
         system_message = gen_kwargs.pop(
@@ -406,6 +487,64 @@ class AgentRuntime:
 
             # No tool calls — final response
             if not parsed.tool_calls:
+                # Structured output: parse + validate JSON
+                if agent.output_schema is not None:
+                    parsed_out = _try_parse_json(parsed.text)
+                    if parsed_out is None:
+                        history.append(
+                            adapter.format_assistant_message(
+                                response
+                            )
+                        )
+                        history.append({
+                            'role': 'user',
+                            'content': (
+                                'Your response must be valid '
+                                'JSON matching the required '
+                                'schema. Please try again.'
+                            ),
+                        })
+                        continue
+                    errors = validate_input(
+                        parsed_out, agent.output_schema
+                    )
+                    if errors:
+                        history.append(
+                            adapter.format_assistant_message(
+                                response
+                            )
+                        )
+                        history.append({
+                            'role': 'user',
+                            'content': (
+                                f'JSON validation errors: '
+                                f'{errors}. '
+                                f'Fix and respond again.'
+                            ),
+                        })
+                        continue
+                    history.append(
+                        adapter.format_assistant_message(
+                            response
+                        )
+                    )
+                    if self._callbacks:
+                        for cb in self._callbacks:
+                            if hasattr(
+                                cb, 'on_iteration_end'
+                            ):
+                                await cb.on_iteration_end(
+                                    agent.name,
+                                    _iteration,
+                                )
+                    yield AgentResult(
+                        agent_name=agent.name,
+                        text=parsed.text,
+                        history=history,
+                        output=parsed_out,
+                    )
+                    return
+
                 history.append(
                     adapter.format_assistant_message(
                         response
