@@ -9,6 +9,7 @@ from sonya.core.schemas.types import (
     GuardrailConfig,
     Interceptor,
     RetryConfig,
+    UsageSummary,
 )
 from sonya.core.client.cache.base import BaseCache
 from sonya.core.client.cache.anthropic import AnthropicCache
@@ -67,6 +68,7 @@ __all__ = [
     "GuardrailConfig",
     "Interceptor",
     "RetryConfig",
+    "UsageSummary",
     # Errors
     "AgentError",
     "GuardrailError",

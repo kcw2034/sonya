@@ -156,6 +156,32 @@ class ClientConfig:
 
 
 @dataclass(frozen=True, slots=True)
+class UsageSummary:
+    """Aggregated usage metrics from a single agent run.
+
+    Collected automatically by AgentRuntime and stored in
+    ``AgentResult.metadata['usage']`` after every run.
+
+    Args:
+        total_input_tokens: Sum of input tokens across all LLM calls.
+        total_output_tokens: Sum of output tokens across all LLM calls.
+        llm_calls: Number of LLM generate() invocations.
+        iterations: Number of agent loop iterations executed.
+        total_tool_calls: Total tool executions across all iterations.
+        total_tool_time_ms: Cumulative tool execution time (ms).
+        total_latency_ms: Cumulative LLM round-trip latency (ms).
+    """
+
+    total_input_tokens: int = 0
+    total_output_tokens: int = 0
+    llm_calls: int = 0
+    iterations: int = 0
+    total_tool_calls: int = 0
+    total_tool_time_ms: float = 0.0
+    total_latency_ms: float = 0.0
+
+
+@dataclass(frozen=True, slots=True)
 class CacheConfig:
     """Input configuration for cache creation.
 

@@ -11,6 +11,8 @@ from sonya.core.parsers.adapter import get_adapter
 from sonya.core.models.agent import Agent, AgentResult
 from sonya.core.exceptions.errors import AgentError, GuardrailError
 from sonya.core.models.tool import ToolResult
+from sonya.core.schemas.types import UsageSummary
+from sonya.core.client.provider.interceptor import extract_usage
 from sonya.core.utils.validation import validate_input
 from sonya.core.utils.tool_context import ToolContext
 from sonya.core.models.tool_registry import ToolRegistry
@@ -185,6 +187,11 @@ class AgentRuntime:
         guardrails = agent.guardrails
         _total_tool_calls = 0
         _total_tool_time = 0.0
+        # Observability counters
+        _total_input_tokens = 0
+        _total_output_tokens = 0
+        _llm_calls = 0
+        _total_latency_ms = 0.0
 
         for _iteration in range(agent.max_iterations):
             # Callback: iteration start
@@ -195,10 +202,18 @@ class AgentRuntime:
                             agent.name, _iteration,
                         )
 
+            _t_llm_start = time.monotonic()
             response = await agent.client.generate(
                 adapter.format_messages(history),
                 **gen_kwargs,
             )
+            _total_latency_ms += (
+                time.monotonic() - _t_llm_start
+            ) * 1000
+            _llm_calls += 1
+            _inp, _out = extract_usage(response)
+            _total_input_tokens += _inp
+            _total_output_tokens += _out
             parsed = adapter.parse(response)
 
             # Check for handoff
@@ -226,6 +241,17 @@ class AgentRuntime:
                         text=parsed.text,
                         history=history,
                         handoff_to=target_name,
+                        metadata={
+                            'usage': UsageSummary(
+                                total_input_tokens=_total_input_tokens,
+                                total_output_tokens=_total_output_tokens,
+                                llm_calls=_llm_calls,
+                                iterations=_iteration + 1,
+                                total_tool_calls=_total_tool_calls,
+                                total_tool_time_ms=_total_tool_time * 1000,
+                                total_latency_ms=_total_latency_ms,
+                            )
+                        },
                     )
 
             # No tool calls — final response
@@ -286,6 +312,17 @@ class AgentRuntime:
                         text=parsed.text,
                         history=history,
                         output=parsed_out,
+                        metadata={
+                            'usage': UsageSummary(
+                                total_input_tokens=_total_input_tokens,
+                                total_output_tokens=_total_output_tokens,
+                                llm_calls=_llm_calls,
+                                iterations=_iteration + 1,
+                                total_tool_calls=_total_tool_calls,
+                                total_tool_time_ms=_total_tool_time * 1000,
+                                total_latency_ms=_total_latency_ms,
+                            )
+                        },
                     )
 
                 history.append(
@@ -304,6 +341,17 @@ class AgentRuntime:
                     agent_name=agent.name,
                     text=parsed.text,
                     history=history,
+                    metadata={
+                        'usage': UsageSummary(
+                            total_input_tokens=_total_input_tokens,
+                            total_output_tokens=_total_output_tokens,
+                            llm_calls=_llm_calls,
+                            iterations=_iteration + 1,
+                            total_tool_calls=_total_tool_calls,
+                            total_tool_time_ms=_total_tool_time * 1000,
+                            total_latency_ms=_total_latency_ms,
+                        )
+                    },
                 )
 
             # Execute tool calls
@@ -509,6 +557,11 @@ class AgentRuntime:
         _stream_total_tool_calls = 0
         _stream_total_tool_time = 0.0
         _stream_guardrails = agent.guardrails
+        # Observability counters
+        _s_total_input_tokens = 0
+        _s_total_output_tokens = 0
+        _s_llm_calls = 0
+        _s_total_latency_ms = 0.0
 
         for _iteration in range(agent.max_iterations):
             if self._callbacks:
@@ -518,10 +571,18 @@ class AgentRuntime:
                             agent.name, _iteration,
                         )
 
+            _st_llm = time.monotonic()
             response = await agent.client.generate(
                 adapter.format_messages(history),
                 **gen_kwargs,
             )
+            _s_total_latency_ms += (
+                time.monotonic() - _st_llm
+            ) * 1000
+            _s_llm_calls += 1
+            _s_inp, _s_out = extract_usage(response)
+            _s_total_input_tokens += _s_inp
+            _s_total_output_tokens += _s_out
             parsed = adapter.parse(response)
 
             # Yield text chunk if present
@@ -551,6 +612,17 @@ class AgentRuntime:
                         text=parsed.text,
                         history=history,
                         handoff_to=target_name,
+                        metadata={
+                            'usage': UsageSummary(
+                                total_input_tokens=_s_total_input_tokens,
+                                total_output_tokens=_s_total_output_tokens,
+                                llm_calls=_s_llm_calls,
+                                iterations=_iteration + 1,
+                                total_tool_calls=_stream_total_tool_calls,
+                                total_tool_time_ms=_stream_total_tool_time * 1000,
+                                total_latency_ms=_s_total_latency_ms,
+                            )
+                        },
                     )
                     return
 
@@ -611,6 +683,17 @@ class AgentRuntime:
                         text=parsed.text,
                         history=history,
                         output=parsed_out,
+                        metadata={
+                            'usage': UsageSummary(
+                                total_input_tokens=_s_total_input_tokens,
+                                total_output_tokens=_s_total_output_tokens,
+                                llm_calls=_s_llm_calls,
+                                iterations=_iteration + 1,
+                                total_tool_calls=_stream_total_tool_calls,
+                                total_tool_time_ms=_stream_total_tool_time * 1000,
+                                total_latency_ms=_s_total_latency_ms,
+                            )
+                        },
                     )
                     return
 
@@ -629,6 +712,17 @@ class AgentRuntime:
                     agent_name=agent.name,
                     text=parsed.text,
                     history=history,
+                    metadata={
+                        'usage': UsageSummary(
+                            total_input_tokens=_s_total_input_tokens,
+                            total_output_tokens=_s_total_output_tokens,
+                            llm_calls=_s_llm_calls,
+                            iterations=_iteration + 1,
+                            total_tool_calls=_stream_total_tool_calls,
+                            total_tool_time_ms=_stream_total_tool_time * 1000,
+                            total_latency_ms=_s_total_latency_ms,
+                        )
+                    },
                 )
                 return
 

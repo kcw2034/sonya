@@ -16,6 +16,47 @@ from sonya.core.schemas.events import (
 _logger = logging.getLogger('sonya.client')
 
 
+def extract_usage(response: Any) -> tuple[int, int]:
+    """Extract (input_tokens, output_tokens) from any provider response.
+
+    Supports Anthropic, OpenAI, Gemini, and dict-format responses.
+    Returns (0, 0) when no usage information is found.
+
+    Args:
+        response: Native provider response object or dict.
+
+    Returns:
+        Tuple of (input_tokens, output_tokens).
+    """
+    # Object with usage attribute (Anthropic / OpenAI)
+    usage = getattr(response, 'usage', None)
+    if usage is not None:
+        inp = getattr(
+            usage, 'input_tokens',
+            getattr(usage, 'prompt_tokens', 0),
+        )
+        out = getattr(
+            usage, 'output_tokens',
+            getattr(usage, 'completion_tokens', 0),
+        )
+        return int(inp), int(out)
+    # Gemini usage_metadata
+    meta = getattr(response, 'usage_metadata', None)
+    if meta is not None:
+        return (
+            int(getattr(meta, 'prompt_token_count', 0)),
+            int(getattr(meta, 'candidates_token_count', 0)),
+        )
+    # Dict fallback
+    if isinstance(response, dict):
+        u = response.get('usage', {})
+        return (
+            int(u.get('input_tokens', u.get('prompt_tokens', 0))),
+            int(u.get('output_tokens', u.get('completion_tokens', 0))),
+        )
+    return 0, 0
+
+
 class LoggingInterceptor:
     """Interceptor that logs LLM request/response details.
 
@@ -135,47 +176,7 @@ class LoggingInterceptor:
         self, response: Any
     ) -> tuple[int, int]:
         """Extract token usage from provider-agnostic response."""
-        # Object with usage attribute
-        usage = getattr(response, 'usage', None)
-        if usage is not None:
-            inp = getattr(
-                usage, 'input_tokens',
-                getattr(usage, 'prompt_tokens', 0),
-            )
-            out = getattr(
-                usage, 'output_tokens',
-                getattr(
-                    usage, 'completion_tokens', 0
-                ),
-            )
-            return int(inp), int(out)
-        # Gemini usage_metadata
-        meta = getattr(
-            response, 'usage_metadata', None
-        )
-        if meta is not None:
-            return (
-                int(getattr(
-                    meta, 'prompt_token_count', 0
-                )),
-                int(getattr(
-                    meta, 'candidates_token_count', 0
-                )),
-            )
-        # Dict fallback
-        if isinstance(response, dict):
-            u = response.get('usage', {})
-            return (
-                u.get(
-                    'input_tokens',
-                    u.get('prompt_tokens', 0),
-                ),
-                u.get(
-                    'output_tokens',
-                    u.get('completion_tokens', 0),
-                ),
-            )
-        return 0, 0
+        return extract_usage(response)
 
     def _emit(
         self,
