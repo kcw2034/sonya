@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import time
 
-import pytest
 
 from sonya.core.models.session import Session, SessionStore
 from sonya.core.stores.in_memory import InMemorySessionStore

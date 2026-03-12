@@ -10,7 +10,7 @@ import pytest
 from sonya.core.models.agent import Agent
 from sonya.core.models.agent_runtime import AgentRuntime
 from sonya.core.client.provider.base import BaseClient
-from sonya.core.schemas.types import AgentCallback, ClientConfig
+from sonya.core.schemas.types import ClientConfig
 
 
 class _DummyClient(BaseClient):

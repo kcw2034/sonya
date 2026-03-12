@@ -472,7 +472,6 @@ class TestLoggingInterceptorConcurrency:
         With ContextVar fix: long_request reports ~100ms correctly.
         """
         import asyncio
-        import time
 
         interceptor = LoggingInterceptor()
         latency_records: list[float] = []

@@ -14,7 +14,7 @@ from sonya.core.utils.router import ContextRouter
 from sonya.core.utils.tool_context import ToolContext
 
 if TYPE_CHECKING:
-    from sonya.core.models.session import Session, SessionStore
+    from sonya.core.models.session import SessionStore
 
 
 @runtime_checkable

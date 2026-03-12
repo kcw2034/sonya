@@ -225,7 +225,6 @@ async def test_execute_sequential_failure_continues() -> None:
 @pytest.mark.asyncio
 async def test_agent_parallel_tool_execution_default() -> None:
     """Agent.parallel_tool_execution defaults to True."""
-    from sonya.core.client.provider.base import BaseClient
 
     client = DummyClient([_text('done')])
     client.__class__.__name__ = 'AnthropicClient'

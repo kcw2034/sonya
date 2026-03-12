@@ -7,9 +7,9 @@ from typing import Any, AsyncIterator
 
 import pytest
 
-from sonya.core.models.agent import Agent, AgentResult
+from sonya.core.models.agent import Agent
 from sonya.core.models.agent_runtime import AgentRuntime
-from sonya.core.models.prompt import Prompt, Example
+from sonya.core.models.prompt import Prompt
 from sonya.core.client.provider.base import BaseClient
 from sonya.core.schemas.types import ClientConfig
 

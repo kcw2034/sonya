@@ -144,7 +144,6 @@ def test_safe_get_hints_resolvable_forward_ref() -> None:
 def test_schema_parser_contains_no_eval_call() -> None:
     """Ensure the schema_parser source no longer contains an eval() call."""
     import importlib.util
-    import inspect
 
     spec = importlib.util.find_spec('sonya.core.parsers.schema_parser')
     assert spec is not None

@@ -49,8 +49,6 @@ def test_get_adapter_returns_correct_adapter():
     from sonya.core.client.provider.base import BaseClient
     from sonya.core.parsers.adapter import (
         AnthropicAdapter,
-        OpenAIAdapter,
-        GeminiAdapter,
     )
     from typing import Any, AsyncIterator
 

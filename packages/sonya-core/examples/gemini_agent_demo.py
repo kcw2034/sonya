@@ -16,7 +16,7 @@ if os.path.exists(_env_path):
                 key, val = line.split('=', 1)
                 os.environ.setdefault(key.strip(), val.strip())
 
-from sonya.core import (
+from sonya.core import (  # noqa: E402
     Agent,
     AgentRuntime,
     GeminiClient,
@@ -163,7 +163,7 @@ async def main() -> None:
         print('ERROR: GOOGLE_API_KEY not found in environment.')
         sys.exit(1)
 
-    print(f'API Key loaded: {api_key[:8]}...\n')
+    print('API Key loaded: [REDACTED]\n')
 
     await test_single_agent()
     await test_handoff()

@@ -9,7 +9,6 @@ import pytest
 from sonya.core.models.agent import Agent
 from sonya.core.client.provider.base import BaseClient
 from sonya.core.schemas.memory import (
-    MemoryPipeline,
     NormalizedMessage,
 )
 from sonya.core.utils.router import ContextRouter
