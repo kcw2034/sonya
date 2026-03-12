@@ -143,15 +143,20 @@ class LangChainAdapter:
         self,
         instructions: str,
         tool_schemas: list[dict[str, Any]] | None,
+        output_schema: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Build kwargs for LangChain generate.
 
         LangChain handles system prompt via messages, so we
-        pass tool schemas for bind_tools.
+        pass tool schemas for bind_tools. The *output_schema*
+        parameter is accepted for protocol compatibility but
+        not applied here (structured output for LangChain
+        models must be configured at the model level).
 
         Args:
             instructions: System prompt (handled via messages).
             tool_schemas: Tool schemas to bind.
+            output_schema: Ignored — for protocol compatibility.
 
         Returns:
             Dict with 'tools' key if schemas provided.
