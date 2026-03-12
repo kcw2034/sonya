@@ -22,7 +22,8 @@ packages/
 ├── sonya-core/
 │   └── src/sonya/core/
 │       ├── client/              # 프로바이더 클라이언트 (Anthropic/OpenAI/Gemini)
-│       │   └── provider/        # BaseClient, thin 래퍼, 인터셉터
+│       │   ├── base.py          # BaseClient ABC (추상 인터페이스)
+│       │   └── provider/        # AnthropicClient, OpenAIClient, GeminiClient
 │       ├── cache/               # 캐시 시스템
 │       │   ├── base.py          # BaseCache ABC (추상 인터페이스)
 │       │   └── provider/        # AnthropicCache, OpenAICache, GeminiCache
