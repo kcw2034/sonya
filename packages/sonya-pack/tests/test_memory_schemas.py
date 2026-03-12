@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 
 from sonya.core.schemas.memory import MemoryEntry, MemoryType
 from sonya.pack.schemas.schema import (
