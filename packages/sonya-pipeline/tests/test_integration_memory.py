@@ -1,6 +1,6 @@
 """Integration tests for the full memory pipeline flow."""
 
-from sonya.core.schemas.memory import MemoryPipeline, NormalizedMessage
+from sonya.core.schemas.memory import MemoryPipeline
 from sonya.pipeline import (
     DefaultMemoryPipeline,
     InMemoryStore,

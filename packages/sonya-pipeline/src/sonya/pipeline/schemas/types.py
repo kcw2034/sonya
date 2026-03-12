@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from typing import Any, Protocol, runtime_checkable
 
+from sonya.core.schemas.memory import NormalizedMessage
+
 
 # ── Message type ──────────────────────────────────────────────────────────
 
@@ -16,8 +18,6 @@ Message = dict[str, Any]
 
 
 # ── Memory store protocol ────────────────────────────────────────────────
-
-from sonya.core.schemas.memory import NormalizedMessage
 
 
 @runtime_checkable

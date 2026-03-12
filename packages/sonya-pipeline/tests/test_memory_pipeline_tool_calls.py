@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import pytest
 
 from sonya.pipeline.client.memory import DefaultMemoryPipeline
 from sonya.core.schemas.memory import NormalizedMessage

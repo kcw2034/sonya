@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
 
 from sonya.core.models.session import Session
 from sonya.pipeline.stores.file_session_store import FileSessionStore

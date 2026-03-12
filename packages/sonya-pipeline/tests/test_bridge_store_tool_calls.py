@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import MagicMock
 
-import pytest
 
 from sonya.pipeline.stores.bridge_store import BridgeStore
 from sonya.core.schemas.memory import NormalizedMessage

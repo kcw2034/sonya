@@ -2,7 +2,6 @@
 
 import pytest
 
-from sonya.core.schemas.memory import NormalizedMessage
 from sonya.pipeline.client.memory import DefaultMemoryPipeline
 from sonya.pipeline.stores.in_memory import InMemoryStore
 
