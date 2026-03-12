@@ -71,6 +71,13 @@ src/sonya/pack/
     └── schema.py              # MessageMeta / SessionIndex / memory meta
 ```
 
+## Key Methods
+
+- `add_message(session_id, role, content, ...)` — append a message
+- `build_context(session_id, last_n_turns, memory_type)` — restore messages
+- `clear_session(session_id)` — remove all messages for a session
+- `list_sessions()` — list all registered session IDs
+
 ## Data Files
 
 Files managed by the engine:

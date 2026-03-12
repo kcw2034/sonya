@@ -1,43 +1,42 @@
 # Sonya
 
-Lightweight Python LLM client framework. It wraps official SDKs as
-thin wrappers and provides **kwargs passthrough** with
-**interceptor-based observability**.
+Lightweight Python LLM agent framework. Thin wrappers around official
+SDKs with an interceptor-based observability layer, a composable agent
+runtime, and cross-provider memory pipeline.
 
 ## Status
 
-- `sonya-core`: Thin wrapper clients, Tool system, Agent Runtime, and
-  orchestration are implemented
-- `sonya-cli`: Textual-based TUI chat command (`sonya chat`) is
-  available
-- Planned: Further stabilization and additional runtime capabilities
+| Package | Description | Status |
+|---------|-------------|--------|
+| `sonya-core` | LLM clients, Tool system, Agent Runtime, orchestration | ✅ |
+| `sonya-cli` | Textual TUI chat interface (`sonya chat`) | ✅ |
+| `sonya-pack` | BinContext append-only storage | ✅ |
+| `sonya-pipeline` | Cross-provider message normalization + pipeline stages | ✅ |
+| `sonya-extension` | LangChain model adapter | ✅ |
 
 ## Repository Layout
 
 ```text
-.
-├── packages/
-│   ├── sonya-cli/
-│   │   └── src/sonya/cli/
-│   │       ├── cli.py            # Cyclopts entrypoint (`sonya chat`)
-│   │       ├── app.py            # Textual app bootstrap
-│   │       ├── agent_manager.py  # Chat session + client routing
-│   │       ├── screens/
-│   │       │   └── chat.py       # Main chat screen
-│   │       └── widgets/
-│   │           ├── settings_panel.py
-│   │           └── chat_panel.py
-│   └── sonya-core/
-│       └── src/sonya/core/
-│           ├── types.py           # ClientConfig, Interceptor, AgentCallback
-│           ├── errors.py          # AgentError, ToolError
-│           ├── client/            # Provider clients (Anthropic/OpenAI/Gemini)
-│           ├── tool/              # @tool, ToolRegistry, ToolContext
-│           ├── agent/             # Agent, AgentResult, AgentRuntime
-│           ├── orchestration/     # Runner, SupervisorRuntime
-│           └── logging/           # LoggingInterceptor, DebugCallback
-├── _archive/                      # Archive of previous implementations
-└── README.md
+packages/
+├── sonya-core/
+│   └── src/sonya/core/
+│       ├── client/              # Provider clients (Anthropic/OpenAI/Gemini)
+│       │   ├── provider/        # BaseClient, thin wrappers, interceptors
+│       │   └── cache/           # Cache abstractions per provider
+│       ├── models/              # Agent, AgentRuntime, Tool, Runner, Supervisor
+│       ├── parsers/             # Response adapters + JSON schema parser
+│       ├── schemas/             # types.py, events.py, memory.py
+│       ├── utils/               # @tool decorator, DebugCallback, router
+│       └── exceptions/          # AgentError, GuardrailError, ...
+├── sonya-cli/
+│   └── src/sonya/cli/           # Textual TUI, gateway client, auth
+├── sonya-pack/
+│   └── src/sonya/pack/          # BinContextEngine, SessionIndex
+├── sonya-pipeline/
+│   └── src/sonya/pipeline/      # DefaultMemoryPipeline, Pipeline stages,
+│                                # InMemoryStore, BridgeStore
+└── sonya-extension/
+    └── src/sonya/extension/     # LangChainClient adapter
 ```
 
 ## Requirements
@@ -47,31 +46,19 @@ thin wrappers and provides **kwargs passthrough** with
 ## Installation
 
 ```bash
+# Create and activate virtualenv
 python -m venv .venv
 source .venv/bin/activate
 
+# Install sonya-core with desired provider(s)
 cd packages/sonya-core
-
-# Install specific provider
-pip install -e ".[anthropic]"
-pip install -e ".[openai]"
-pip install -e ".[gemini]"
-
-# Install all providers
-pip install -e ".[all]"
-
-# Include development dependencies
-pip install -e ".[all,dev]"
+pip install -e ".[anthropic]"   # Anthropic only
+pip install -e ".[openai]"      # OpenAI only
+pip install -e ".[gemini]"      # Gemini only
+pip install -e ".[all,dev]"     # all providers + dev tools
 ```
 
-### Install CLI package
-
-```bash
-cd packages/sonya-cli
-pip install -e .
-```
-
-Run the CLI with local editable dependencies:
+### Install CLI
 
 ```bash
 cd packages/sonya-cli
@@ -85,87 +72,144 @@ import asyncio
 from sonya.core import AnthropicClient, ClientConfig
 
 async def main():
-    config = ClientConfig(model="claude-sonnet-4-20250514")
+    config = ClientConfig(model='claude-sonnet-4-6')
     async with AnthropicClient(config) as client:
         response = await client.generate(
-            messages=[{"role": "user", "content": "Hello!"}],
+            messages=[{'role': 'user', 'content': 'Hello!'}],
         )
         print(response)
 
 asyncio.run(main())
 ```
 
-## Streaming
+## Feature Overview
+
+### Streaming
+
+`run_stream()` yields text chunks progressively, then the final
+`AgentResult`.
 
 ```python
-import asyncio
-from sonya.core import OpenAIClient, ClientConfig
+async for item in AgentRuntime(agent).run_stream(messages):
+    if isinstance(item, str):
+        print(item, end='', flush=True)
+```
 
-async def main():
-    config = ClientConfig(model="gpt-4o")
-    async with OpenAIClient(config) as client:
-        async for chunk in client.generate_stream(
-            messages=[{"role": "user", "content": "Describe Seoul."}],
-        ):
-            print(chunk, end="", flush=True)
+### Retry & Resilience
 
-asyncio.run(main())
+Configurable exponential-backoff retry on network-level errors.
+
+```python
+from sonya.core import ClientConfig, RetryConfig
+
+config = ClientConfig(
+    model='claude-sonnet-4-6',
+    retry=RetryConfig(max_retries=5, base_delay=0.5),
+)
+```
+
+### Guardrails
+
+Limit tool calls and execution time per agent run.
+
+```python
+from sonya.core import Agent, GuardrailConfig
+
+agent = Agent(
+    name='safe_agent',
+    client=client,
+    tools=[search],
+    guardrails=GuardrailConfig(max_tool_calls=10, max_tool_time=30.0),
+)
+```
+
+### Structured Output
+
+Enforce a JSON Schema response shape with auto-retry on validation failure.
+
+```python
+agent = Agent(
+    name='extractor',
+    client=client,
+    output_schema={
+        'type': 'object',
+        'properties': {'name': {'type': 'string'}, 'age': {'type': 'integer'}},
+        'required': ['name', 'age'],
+    },
+)
+result = await AgentRuntime(agent).run(messages)
+print(result.output)  # {'name': 'Alice', 'age': 30}
+```
+
+### Human-in-the-Loop
+
+Tools can require approval before execution.
+
+```python
+from sonya.core import tool
+
+@tool(description='Delete a file', requires_approval=True)
+async def delete_file(path: str) -> str: ...
+
+class ApprovalCallback:
+    async def on_approval_request(self, agent_name, tool_name, arguments) -> bool:
+        return input(f'Allow {tool_name}? [y/N] ').lower() == 'y'
+```
+
+### Observability
+
+Every run automatically collects token usage and timing metrics.
+
+```python
+result = await AgentRuntime(agent).run(messages)
+usage = result.metadata['usage']  # UsageSummary
+
+print(usage.total_input_tokens)
+print(usage.total_output_tokens)
+print(usage.llm_calls)
+print(usage.total_latency_ms)
+```
+
+### Cross-Provider Memory Pipeline
+
+Normalize and reconstruct messages — including tool calls — across providers.
+
+```python
+from sonya.pipeline import DefaultMemoryPipeline
+
+pipeline = DefaultMemoryPipeline()
+normalized = pipeline.normalize(anthropic_history, 'anthropic')
+openai_messages = pipeline.reconstruct(normalized, 'openai')
 ```
 
 ## Interceptor
 
-You can inject logging, metrics collection, or custom logic before and
-after API calls.
+Inject custom logic before/after every LLM API call.
 
 ```python
 from sonya.core import ClientConfig, AnthropicClient
 
 class LoggingInterceptor:
     async def before_request(self, messages, kwargs):
-        print(f"→ {len(messages)} messages")
+        print(f'→ {len(messages)} messages')
         return messages, kwargs
 
     async def after_response(self, response):
-        print(f"← response received")
+        print('← response received')
         return response
 
 config = ClientConfig(
-    model="claude-sonnet-4-20250514",
+    model='claude-sonnet-4-6',
     interceptors=[LoggingInterceptor()],
 )
-client = AnthropicClient(config)
 ```
-
-## Core Design
-
-- **Thin Wrapper**: Wraps official SDKs while passing through `**kwargs` directly
-- **BaseClient ABC**: Unified interface for `generate()` and `generate_stream()`
-- **Interceptor Protocol**: Observability via `before_request` and `after_response`
-- **Native SDK Responses**: Returns original responses from each SDK without custom models
 
 ## Development
 
 ```bash
-cd packages/sonya-core
-pip install -e ".[all,dev]"
-pytest tests/ -v
+source .venv/bin/activate
+python -m pytest --tb=short -q
 ```
-
-## sonya-cli
-
-`sonya-cli` provides a Textual TUI for interactive chat with Sonya
-agents.
-
-For Korean terminology consistency, see `README.ko.md`.
-
-```bash
-cd packages/sonya-cli
-uv run sonya chat
-```
-
-- Entrypoint: `sonya.cli.cli:app` (`sonya chat`)
-- Core modules: `app.py`, `screens/chat.py`, `widgets/chat_panel.py`, `widgets/settings_panel.py`, `agent_manager.py`
-- Runtime config: `.env` is loaded via `python-dotenv` on startup
 
 ## License
 
