@@ -119,8 +119,52 @@ class ToolRegistry:
         calls: list[
             tuple[str, str, dict[str, Any] | str]
         ],
+        max_concurrency: int | None = None,
     ) -> list[ToolResult]:
         """Execute multiple tool calls in parallel.
+
+        When *max_concurrency* is given, at most that many tools
+        run simultaneously (bounded via :class:`asyncio.Semaphore`).
+        Pass ``None`` (default) for unlimited parallelism.
+
+        Args:
+            calls: List of (name, call_id, arguments) tuples.
+            max_concurrency: Maximum simultaneous executions,
+                or None for unlimited.
+
+        Returns:
+            List of :class:`ToolResult` in the same order.
+        """
+        if max_concurrency is None:
+            tasks = [
+                self.execute(name, call_id, args)
+                for name, call_id, args in calls
+            ]
+            return list(await asyncio.gather(*tasks))
+
+        sem = asyncio.Semaphore(max_concurrency)
+
+        async def _limited(
+            name: str,
+            call_id: str,
+            args: dict[str, Any] | str,
+        ) -> ToolResult:
+            async with sem:
+                return await self.execute(name, call_id, args)
+
+        tasks = [
+            _limited(name, call_id, args)
+            for name, call_id, args in calls
+        ]
+        return list(await asyncio.gather(*tasks))
+
+    async def execute_sequential(
+        self,
+        calls: list[
+            tuple[str, str, dict[str, Any] | str]
+        ],
+    ) -> list[ToolResult]:
+        """Execute multiple tool calls one at a time in order.
 
         Args:
             calls: List of (name, call_id, arguments) tuples.
@@ -128,11 +172,12 @@ class ToolRegistry:
         Returns:
             List of :class:`ToolResult` in the same order.
         """
-        tasks = [
-            self.execute(name, call_id, args)
-            for name, call_id, args in calls
-        ]
-        return await asyncio.gather(*tasks)
+        results: list[ToolResult] = []
+        for name, call_id, args in calls:
+            results.append(
+                await self.execute(name, call_id, args)
+            )
+        return results
 
     def schemas(
         self, provider: str

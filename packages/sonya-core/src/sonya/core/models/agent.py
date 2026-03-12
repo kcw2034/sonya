@@ -38,6 +38,7 @@ class Agent:
         default_factory=GuardrailConfig
     )
     output_schema: dict[str, Any] | None = None
+    parallel_tool_execution: bool = True
 
 
 @dataclass(slots=True)

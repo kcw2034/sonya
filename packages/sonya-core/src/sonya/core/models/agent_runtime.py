@@ -420,11 +420,22 @@ class AgentRuntime:
                             )
 
             _t0 = time.monotonic()
-            executed = (
-                await registry.execute_many(approved_calls)
-                if approved_calls
-                else []
-            )
+            if approved_calls:
+                if not agent.parallel_tool_execution:
+                    executed = await registry.execute_sequential(
+                        approved_calls
+                    )
+                elif guardrails.max_concurrent_tools is not None:
+                    executed = await registry.execute_many(
+                        approved_calls,
+                        max_concurrency=guardrails.max_concurrent_tools,
+                    )
+                else:
+                    executed = await registry.execute_many(
+                        approved_calls
+                    )
+            else:
+                executed = []
             _total_tool_time += time.monotonic() - _t0
             results = denied_results + executed
 
@@ -790,11 +801,23 @@ class AgentRuntime:
                             )
 
             _st0 = time.monotonic()
-            _s_executed = (
-                await registry.execute_many(_s_approved)
-                if _s_approved
-                else []
-            )
+            if _s_approved:
+                _stream_guardrails = agent.guardrails
+                if not agent.parallel_tool_execution:
+                    _s_executed = await registry.execute_sequential(
+                        _s_approved
+                    )
+                elif _stream_guardrails.max_concurrent_tools is not None:
+                    _s_executed = await registry.execute_many(
+                        _s_approved,
+                        max_concurrency=_stream_guardrails.max_concurrent_tools,
+                    )
+                else:
+                    _s_executed = await registry.execute_many(
+                        _s_approved
+                    )
+            else:
+                _s_executed = []
             _stream_total_tool_time += (
                 time.monotonic() - _st0
             )

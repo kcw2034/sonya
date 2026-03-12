@@ -119,6 +119,7 @@ class GuardrailConfig:
 
     max_tool_calls: int | None = None
     max_tool_time: float | None = None
+    max_concurrent_tools: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
