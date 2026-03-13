@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import time
 from collections.abc import AsyncGenerator
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from sonya.core.parsers.adapter import get_adapter
 from sonya.core.exceptions.errors import AgentError, GuardrailError
@@ -15,7 +15,10 @@ from sonya.core.utils.validation import validate_input
 from sonya.core.utils.tool_context import ToolContext
 from sonya.core.utils.handoff import _HANDOFF_PREFIX
 
-from .agent import Agent, AgentResult
+from .agent import AgentResult
+
+if TYPE_CHECKING:
+    from .agent import Agent
 from .tool import ToolResult
 from .tool_registry import ToolRegistry
 from .prompt import Prompt

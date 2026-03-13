@@ -4,14 +4,16 @@ from __future__ import annotations
 
 import dataclasses
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sonya.core.utils.tool_context import ToolContext
 from sonya.core.utils.handoff import _instructions_preview
 
 from .agent_runtime import AgentRuntime
-from .agent import Agent, AgentResult
 from .tool import Tool
+
+if TYPE_CHECKING:
+    from .agent import Agent, AgentResult
 
 
 @dataclass(slots=True)

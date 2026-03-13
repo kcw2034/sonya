@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from sonya.core.client.base import BaseClient
-from sonya.core.schemas.types import AgentCallback, GuardrailConfig
+from sonya.core.schemas.types import GuardrailConfig
 
-from .prompt import Prompt
-from .tool import Tool
+if TYPE_CHECKING:
+    from sonya.core.client.base import BaseClient
+    from sonya.core.schemas.types import AgentCallback
+
+    from .prompt import Prompt
+    from .tool import Tool
 
 
 @dataclass(slots=True)
