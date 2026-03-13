@@ -16,12 +16,12 @@ from sonya.core.utils.tool_context import ToolContext
 from sonya.core.utils.handoff import _HANDOFF_PREFIX
 
 from .agent import AgentResult
-
-if TYPE_CHECKING:
-    from .agent import Agent
 from .tool import ToolResult
 from .tool_registry import ToolRegistry
 from .prompt import Prompt
+
+if TYPE_CHECKING:
+    from .agent import Agent
 
 # Maps provider client class names to schema format names.
 # Defined at module level to avoid recreation on every run().
